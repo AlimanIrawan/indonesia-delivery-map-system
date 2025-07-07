@@ -679,4 +679,193 @@
     padding: 12px 18px;
     font-size: 16px;
   }
+}
+
+/* 路线优化控制面板样式 */
+.route-optimization-panel {
+  position: absolute;
+  top: 20px;
+  left: 250px; /* 位于信息面板右侧 */
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 300px;
+  max-width: 350px;
+}
+
+.route-optimization-panel .panel-header {
+  margin-bottom: 15px;
+}
+
+.route-optimization-panel .panel-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 8px;
+}
+
+.route-optimization-panel .panel-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.route-optimization-panel .btn.calculating {
+  background: #ffc107;
+  border-color: #ffc107;
+  cursor: not-allowed;
+  animation: pulse 1.5s infinite;
+}
+
+/* 路线统计信息样式 */
+.route-summary {
+  border-top: 1px solid #e9ecef;
+  padding-top: 15px;
+  margin-top: 15px;
+}
+
+.route-summary h4 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.summary-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.summary-stats .stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.summary-stats .stat-row span:first-child {
+  color: #666;
+  font-weight: 500;
+}
+
+.summary-stats .stat-row span:last-child {
+  color: #333;
+  font-weight: 600;
+}
+
+/* 批次图例样式 */
+.batch-legend {
+  border-top: 1px solid #e9ecef;
+  padding-top: 12px;
+}
+
+.batch-legend h5 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #555;
+}
+
+.color-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 错误消息样式 */
+.route-optimization-panel .error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #f5c6cb;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 已出库订单样式 */
+.excluded-label {
+  color: #6c757d !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  margin-bottom: 8px !important;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* 路线优化面板响应式设计 */
+@media (max-width: 768px) {
+  .route-optimization-panel {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    min-width: auto;
+    max-width: none;
+    padding: 12px;
+  }
+  
+  .route-optimization-panel .panel-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .route-optimization-panel .btn {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .summary-stats .stat-row {
+    font-size: 11px;
+    padding: 5px 6px;
+  }
+  
+  .legend-item {
+    font-size: 10px;
+  }
+  
+  .color-indicator {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .route-optimization-panel {
+    padding: 10px;
+  }
+  
+  .route-optimization-panel .panel-header h3 {
+    font-size: 14px;
+  }
+  
+  .route-summary h4 {
+    font-size: 13px;
+  }
+  
+  .batch-legend h5 {
+    font-size: 12px;
+  }
 } 

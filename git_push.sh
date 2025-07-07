@@ -186,4 +186,4 @@ if command -v open &> /dev/null; then
     fi
 fi
 
-print_success "�� 印尼送货路线优化系统推送完成！"
+print_success "�� 印尼送货路线优化系统推送完成！" 

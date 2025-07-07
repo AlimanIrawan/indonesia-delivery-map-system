@@ -3,6 +3,7 @@ const axios = require('axios');
 const cron = require('node-cron');
 const { Octokit } = require('@octokit/rest');
 const cors = require('cors');
+const RouteOptimizer = require('./route-optimizer');
 require('dotenv').config();
 
 const app = express();
@@ -23,9 +24,21 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO_OWNER = process.env.GITHUB_REPO_OWNER;
 const GITHUB_REPO_NAME = process.env.GITHUB_REPO_NAME;
 
+// Google Maps API配置
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+
 const octokit = new Octokit({
   auth: GITHUB_TOKEN,
 });
+
+// 初始化路线优化器
+let routeOptimizer = null;
+if (GOOGLE_MAPS_API_KEY) {
+  routeOptimizer = new RouteOptimizer(GOOGLE_MAPS_API_KEY);
+  console.log('✅ 路线优化器初始化成功');
+} else {
+  console.log('⚠️ 未找到Google Maps API密钥，路线优化功能不可用');
+}
 
 let accessToken = null;
 let tokenExpiry = 0;
@@ -195,6 +208,9 @@ async function getFeishuData() {
       const orderType = getFieldText(fields['Order Type']);
       const totalDUS = getFieldText(fields['Total DUS']);
       
+      // 提取Gudang OUT状态（重要：用于路线优化时过滤已出库订单）
+      const gudangOut = getFieldText(fields['Gudang OUT']);
+      
       // 提取最终价格 - 优先使用Final Price IDR字段
       let finalPrice = '';
       if (fields['Final Price IDR']) {
@@ -218,6 +234,7 @@ async function getFeishuData() {
       console.log(`  - 电话: ${noTelepon}`);
       console.log(`  - Kantong: ${kantong}, Order Type: ${orderType}, Total DUS: ${totalDUS}`);
       console.log(`  - 最终价格: ${finalPrice} IDR`);
+      console.log(`  - Gudang OUT状态: ${gudangOut} ${gudangOut === '✅' ? '(已出库)' : '(未出库)'}`);
       
       // 如果经纬度无效，跳过此记录
       if (latitude === 0 || longitude === 0) {
@@ -234,7 +251,15 @@ async function getFeishuData() {
         kantong: kantong || '',
         orderType: orderType || '',
         totalDUS: totalDUS || '',
-        finalPrice: finalPrice || ''
+        finalPrice: finalPrice || '',
+        // 保留原始字段数据，特别是Gudang OUT状态，用于路线优化过滤
+        fields: {
+          'Gudang OUT': gudangOut,
+          'Outlet Code': outletCode,
+          'Nama Pemilik': namaPemilik,
+          'Total DUS': totalDUS,
+          ...fields // 保留所有原始字段以备后用
+        }
       };
     }).filter(record => record !== null); // 过滤掉无效记录
 
@@ -593,6 +618,256 @@ cron.schedule('0 14 * * *', syncData, {
 console.log('🌟 印尼送货数据同步服务启动中...');
 console.log('📅 定时同步: 每日 09:00 和 14:00 (Jakarta时间)');
 console.log('🔗 手动同步: POST /sync');
+console.log('❤️ 健康检查: GET /health');
+
+// 路线优化API端点
+app.post('/api/calculate-routes', async (req, res) => {
+  try {
+    if (!routeOptimizer) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Google Maps API密钥未配置，路线优化功能不可用'
+      });
+    }
+
+    console.log('🚀 开始计算路线优化...');
+    
+    // 获取今天的飞书数据
+    const allOrders = await getFeishuData();
+    
+    // 过滤掉已出库的订单（Gudang OUT = ✅）
+    const activeOrders = allOrders.filter(order => {
+      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      return gudangOut !== '✅';
+    });
+
+    const excludedOrders = allOrders.filter(order => {
+      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      return gudangOut === '✅';
+    });
+
+    console.log(`📦 总订单数: ${allOrders.length}`);
+    console.log(`🔄 参与路线计算: ${activeOrders.length} 个订单`);
+    console.log(`⚫ 已出库(跳过): ${excludedOrders.length} 个订单`);
+
+    if (activeOrders.length === 0) {
+      return res.json({
+        success: true,
+        message: '没有需要优化的订单',
+        active_orders: 0,
+        excluded_orders: excludedOrders.length,
+        routes: [],
+        excluded_points: excludedOrders
+      });
+    }
+
+    // 转换数据格式以兼容路线优化器
+    const optimizerInput = activeOrders.map(order => ({
+      shop_code: order.shop_code,
+      outlet_name: order.outlet_name,
+      latitude: order.latitude,
+      longitude: order.longitude,
+      totalDUS: order.totalDUS,
+      phoneNumber: order.phoneNumber || '',
+      kantong: order.kantong || '',
+      orderType: order.orderType || '',
+      finalPrice: order.finalPrice || '',
+      fields: order.fields || {}
+    }));
+
+    // 执行路线优化
+    const optimizationResult = await routeOptimizer.optimizeAllRoutes(optimizerInput);
+
+    if (optimizationResult.error) {
+      return res.status(500).json({
+        success: false,
+        error: optimizationResult.error
+      });
+    }
+
+    // 返回结果
+    res.json({
+      success: true,
+      active_orders: activeOrders.length,
+      excluded_orders: excludedOrders.length,
+      optimization_result: optimizationResult,
+      excluded_points: excludedOrders,
+      calculation_time: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ 路线计算失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 获取订单状态API（用于前端显示）
+app.get('/api/order-status', async (req, res) => {
+  try {
+    console.log('📊 获取订单状态统计...');
+    
+    // 获取今天的飞书数据
+    const allOrders = await getFeishuData();
+    
+    // 分类统计
+    const activeOrders = allOrders.filter(order => {
+      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      return gudangOut !== '✅';
+    });
+
+    const excludedOrders = allOrders.filter(order => {
+      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      return gudangOut === '✅';
+    });
+
+    const activeTotal = activeOrders.reduce((sum, order) => sum + (parseInt(order.totalDUS) || 0), 0);
+    const excludedTotal = excludedOrders.reduce((sum, order) => sum + (parseInt(order.totalDUS) || 0), 0);
+
+    res.json({
+      success: true,
+      date: getTodayDateString(),
+      total_orders: allOrders.length,
+      active_orders: {
+        count: activeOrders.length,
+        total_dus: activeTotal
+      },
+      excluded_orders: {
+        count: excludedOrders.length,
+        total_dus: excludedTotal
+      },
+      last_update: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ 获取订单状态失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 测试路线优化API（使用示例数据）
+app.post('/api/test-route-optimization', async (req, res) => {
+  try {
+    if (!routeOptimizer) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Google Maps API密钥未配置，路线优化功能不可用'
+      });
+    }
+
+    console.log('🧪 测试路线优化功能...');
+
+    // 使用示例数据
+    const testOrders = [
+      {
+        shop_code: 'TEST001',
+        outlet_name: 'Ibu Sri Utami',
+        latitude: -6.121566354,
+        longitude: 106.919700019061577,
+        totalDUS: 17,
+        phoneNumber: '0812345678',
+        kantong: 'A',
+        orderType: 'reguler',
+        finalPrice: '85000'
+      },
+      {
+        shop_code: 'TEST002',
+        outlet_name: 'Ibu Murniati',
+        latitude: -6.124966993,
+        longitude: 106.951539851725251,
+        totalDUS: 4,
+        phoneNumber: '0823456789',
+        kantong: 'B',
+        orderType: 'reguler',
+        finalPrice: '20000'
+      },
+      {
+        shop_code: 'TEST003',
+        outlet_name: 'Bapak Supriadi',
+        latitude: -6.108881024,
+        longitude: 106.937086433172223,
+        totalDUS: 5,
+        phoneNumber: '0834567890',
+        kantong: 'A',
+        orderType: 'express',
+        finalPrice: '25000'
+      }
+    ];
+
+    const optimizationResult = await routeOptimizer.optimizeAllRoutes(testOrders);
+
+    res.json({
+      success: true,
+      test_data: true,
+      input_orders: testOrders.length,
+      optimization_result: optimizationResult,
+      test_time: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ 测试路线优化失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 更新环境变量配置信息
+app.get('/api/config-status', (req, res) => {
+  res.json({
+    feishu_configured: !!(FEISHU_APP_ID && FEISHU_APP_SECRET && FEISHU_APP_TOKEN && FEISHU_TABLE_ID),
+    github_configured: !!(GITHUB_TOKEN && GITHUB_REPO_OWNER && GITHUB_REPO_NAME),
+    google_maps_configured: !!GOOGLE_MAPS_API_KEY,
+    route_optimizer_ready: !!routeOptimizer,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// 服务信息端点
+app.get('/', (req, res) => {
+  const now = new Date();
+  const jakartaTime = now.toLocaleString('zh-CN', { timeZone: 'Asia/Jakarta' });
+  
+  res.json({
+    service: '印尼送货数据同步服务 + 路线优化',
+    status: 'running',
+    currentTime: jakartaTime,
+    timezone: 'Asia/Jakarta (UTC+7)',
+    schedule: '每日 09:00 和 14:00 自动同步',
+    lastSync: '查看日志了解详情',
+    features: {
+      data_sync: '飞书数据同步',
+      route_optimization: routeOptimizer ? '路线优化已启用' : '路线优化未配置'
+    },
+    endpoints: {
+      health: '/health',
+      manualSync: 'POST /sync',
+      calculateRoutes: 'POST /api/calculate-routes',
+      orderStatus: 'GET /api/order-status',
+      testRoutes: 'POST /api/test-route-optimization',
+      configStatus: 'GET /api/config-status'
+    }
+  });
+});
+
+// 设置定时任务 - 每日09:00和14:00 (Jakarta时间)
+cron.schedule('0 9 * * *', syncData, {
+  timezone: 'Asia/Jakarta'
+});
+
+cron.schedule('0 14 * * *', syncData, {
+  timezone: 'Asia/Jakarta'
+});
+
+console.log('🌟 印尼送货数据同步服务启动中...');
+console.log('🔗 手动同步: POST /sync');
+console.log('🚛 路线优化: POST /api/calculate-routes');
 console.log('❤️ 健康检查: GET /health');
 
 app.listen(PORT, () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, Marker, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './App.css';
 import L from 'leaflet';
@@ -50,13 +50,60 @@ interface MarkerData {
   orderType: string;
   totalDUS: string;
   finalPrice: string;
+  fields?: any;
+}
+
+interface LoginFormProps {
+  onLogin: () => void;
+}
+
+interface OptimizedBatch {
+  batch_number: number;
+  route: Array<{
+    id: string;
+    name: string;
+    lat: number;
+    lng: number;
+    dus_count: number;
+    phone: string;
+    address: string;
+  }>;
+  total_distance: number;
+  total_duration: number;
+  capacity_used: number;
+}
+
+interface OptimizationResult {
+  success: boolean;
+  active_orders: number;
+  excluded_orders: number;
+  optimization_result?: {
+    batches: OptimizedBatch[];
+    total_distance: number;
+    total_duration: number;
+    statistics: any;
+  };
+  excluded_points?: MarkerData[];
+  calculation_time?: string;
+  error?: string;
 }
 
 // 统一使用鲜艳的红色标记
 const MARKER_COLOR = '#FF0000';  // 鲜艳的红色
+const EXCLUDED_MARKER_COLOR = '#999999';  // 灰色（已出库）
+
+// 路线颜色配置
+const ROUTE_COLORS = [
+  '#FF0000', // 红色
+  '#0066FF', // 蓝色
+  '#00AA00', // 绿色
+  '#FF8800', // 橙色
+  '#8800FF', // 紫色
+  '#00AAAA', // 青色
+];
 
 // 总部坐标（固定不变）
-const HEADQUARTERS_POSITION: [number, number] = [-6.112588, 106.917328];
+const HEADQUARTERS_POSITION: [number, number] = [-6.11258762834466, 106.91732818555802];
 
 // 地图图层配置
 const MAP_LAYERS = {
@@ -73,6 +120,90 @@ const MAP_LAYERS = {
 };
 
 type MapLayerType = keyof typeof MAP_LAYERS;
+
+// 路线优化控制面板组件
+const RouteOptimizationPanel: React.FC<{
+  onCalculateRoutes: () => void;
+  isCalculating: boolean;
+  routeData: OptimizationResult | null;
+  onClearRoutes: () => void;
+}> = ({ onCalculateRoutes, isCalculating, routeData, onClearRoutes }) => {
+  return (
+    <div className="route-optimization-panel">
+      <div className="panel-header">
+        <h3>🚛 路线优化</h3>
+      </div>
+      
+      <div className="panel-actions">
+        <button
+          onClick={onCalculateRoutes}
+          disabled={isCalculating}
+          className={`btn btn-primary ${isCalculating ? 'calculating' : ''}`}
+          title="计算最优送货路线"
+        >
+          {isCalculating ? '计算中...' : '🧮 计算路线'}
+        </button>
+        
+        {routeData && (
+          <button
+            onClick={onClearRoutes}
+            className="btn btn-outline-primary btn-sm"
+            title="清除路线显示"
+          >
+            🧹 清除路线
+          </button>
+        )}
+      </div>
+
+      {routeData && routeData.success && routeData.optimization_result && (
+        <div className="route-summary">
+          <h4>📊 路线统计</h4>
+          <div className="summary-stats">
+            <div className="stat-row">
+              <span>参与计算:</span>
+              <span>{routeData.active_orders} 个订单</span>
+            </div>
+            <div className="stat-row">
+              <span>已出库:</span>
+              <span>{routeData.excluded_orders} 个订单</span>
+            </div>
+            <div className="stat-row">
+              <span>总距离:</span>
+              <span>{routeData.optimization_result.total_distance.toFixed(1)} km</span>
+            </div>
+            <div className="stat-row">
+              <span>总时间:</span>
+              <span>{routeData.optimization_result.total_duration.toFixed(0)} 分钟</span>
+            </div>
+            <div className="stat-row">
+              <span>批次数:</span>
+              <span>{routeData.optimization_result.batches.length} 个</span>
+            </div>
+          </div>
+          
+          <div className="batch-legend">
+            <h5>📋 批次图例</h5>
+            {routeData.optimization_result.batches.map((batch, index) => (
+              <div key={batch.batch_number} className="legend-item">
+                <div 
+                  className="color-indicator" 
+                  style={{ backgroundColor: ROUTE_COLORS[index % ROUTE_COLORS.length] }}
+                ></div>
+                <span>批次{batch.batch_number}: {batch.route.length}站</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {routeData && !routeData.success && (
+        <div className="error-message">
+          <p>❌ {routeData.error}</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // 总部标记组件
 const HeadquartersMarker: React.FC = () => {
@@ -92,6 +223,55 @@ const HeadquartersMarker: React.FC = () => {
       </Popup>
     </Marker>
   );
+};
+
+// 路线显示组件
+const RouteOverlay: React.FC<{ 
+  routeData: OptimizationResult | null 
+}> = ({ routeData }) => {
+  if (!routeData || !routeData.success || !routeData.optimization_result) {
+    return null;
+  }
+
+  const renderRouteLines = () => {
+    return routeData.optimization_result!.batches.map((batch, batchIndex) => {
+      const color = ROUTE_COLORS[batchIndex % ROUTE_COLORS.length];
+      
+      // 构建路线路径：总部 -> 各个订单点 -> 总部
+      const routePath: [number, number][] = [HEADQUARTERS_POSITION];
+      
+      batch.route.forEach(order => {
+        routePath.push([order.lat, order.lng]);
+      });
+      
+      routePath.push(HEADQUARTERS_POSITION);
+
+      return (
+        <Polyline
+          key={`route-${batch.batch_number}`}
+          positions={routePath}
+          pathOptions={{
+            color: color,
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '10, 5'
+          }}
+        >
+          <Popup>
+            <div>
+              <h4>批次 {batch.batch_number}</h4>
+              <p>距离: {batch.total_distance.toFixed(1)} km</p>
+              <p>时间: {batch.total_duration.toFixed(0)} 分钟</p>
+              <p>货物: {batch.capacity_used} 件</p>
+              <p>路线: {batch.route.length} 个地点</p>
+            </div>
+          </Popup>
+        </Polyline>
+      );
+    });
+  };
+
+  return <>{renderRouteLines()}</>;
 };
 
 // 图层切换组件
@@ -215,34 +395,6 @@ const LocationMarker: React.FC = () => {
   );
 };
 
-// 辅助函数：解析CSV行，处理引号和逗号
-const parseCSVLine = (line: string): string[] => {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  result.push(current);
-  return result;
-};
-
-// 辅助函数：清理引号
-const cleanQuotes = (str: string): string => {
-  return str.replace(/^"|"$/g, '');
-};
-
 // 登录凭据
 const LOGIN_CREDENTIALS = {
   username: 'One Meter',
@@ -250,7 +402,7 @@ const LOGIN_CREDENTIALS = {
 };
 
 // 登录组件
-const LoginForm: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -324,45 +476,19 @@ const LoginForm: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
 
 function App() {
   const [markers, setMarkers] = useState<MarkerData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentLayer, setCurrentLayer] = useState<MapLayerType>('street');
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [lastManualUpdate, setLastManualUpdate] = useState(0);
-  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const parseCSV = (csvText: string): MarkerData[] => {
-    const lines = csvText.trim().split('\n');
-    if (lines.length <= 1) return [];
-
-    const headers = lines[0].split(',');
-    const data: MarkerData[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      if (values.length >= headers.length) {
-        const lat = parseFloat(values[1]);
-        const lng = parseFloat(values[2]);
-        
-        if (!isNaN(lat) && !isNaN(lng)) {
-          data.push({
-            shop_code: values[0] || '',
-            latitude: lat,
-            longitude: lng,
-            outlet_name: cleanQuotes(values[3]) || '',
-            phoneNumber: cleanQuotes(values[4]) || '',
-            kantong: cleanQuotes(values[5]) || '',
-            orderType: cleanQuotes(values[6]) || '',
-            totalDUS: cleanQuotes(values[7]) || '',
-            finalPrice: cleanQuotes(values[8]) || ''
-          });
-        }
-      }
-    }
-
-    return data;
-  };
+  const [currentLayer, setCurrentLayer] = useState<MapLayerType>('street');
+  
+  // 路线优化相关状态
+  const [routeData, setRouteData] = useState<OptimizationResult | null>(null);
+  const [isCalculatingRoutes, setIsCalculatingRoutes] = useState(false);
+  
+  // 手动更新相关状态
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [lastManualUpdate, setLastManualUpdate] = useState(0);
 
   // 加载CSV数据
   const loadData = useCallback(async () => {
@@ -385,6 +511,52 @@ function App() {
       setLoading(false);
     }
   }, []);
+
+  // 计算路线优化
+  const handleCalculateRoutes = async () => {
+    setIsCalculatingRoutes(true);
+    setRouteData(null);
+
+    try {
+      console.log('🚀 开始计算路线优化...');
+      
+      const response = await fetch('https://feishu-delivery-sync.onrender.com/api/calculate-routes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`路线计算失败: ${response.status}`);
+      }
+
+      const result: OptimizationResult = await response.json();
+      setRouteData(result);
+
+      if (result.success) {
+        console.log('✅ 路线优化计算完成');
+      } else {
+        console.error('❌ 路线优化失败:', result.error);
+      }
+
+    } catch (error) {
+      console.error('路线计算错误:', error);
+      setRouteData({
+        success: false,
+        error: error instanceof Error ? error.message : '路线计算失败',
+        active_orders: 0,
+        excluded_orders: 0
+      });
+    } finally {
+      setIsCalculatingRoutes(false);
+    }
+  };
+
+  // 清除路线显示
+  const handleClearRoutes = () => {
+    setRouteData(null);
+  };
 
   // 手动刷新数据
   const handleManualUpdate = async () => {
@@ -424,7 +596,10 @@ function App() {
       console.log('📥 重新加载地图数据...');
       await loadData();
 
-      // 4. 更新状态
+      // 4. 清除旧的路线数据（因为数据已更新）
+      setRouteData(null);
+
+      // 5. 更新状态
       setLastManualUpdate(now);
       setUpdateMessage('✅ 数据更新成功！');
       setTimeout(() => setUpdateMessage(null), 5000);
@@ -472,6 +647,14 @@ function App() {
 
   const currentLayerConfig = MAP_LAYERS[currentLayer];
 
+  // 获取已出库订单（用于灰色显示）
+  const getExcludedMarkers = (): MarkerData[] => {
+    if (!routeData || !routeData.excluded_points) {
+      return [];
+    }
+    return routeData.excluded_points;
+  };
+
   return (
     <div className="App">
       <div className="map-container">
@@ -494,6 +677,65 @@ function App() {
           </div>
         )}
 
+        {/* 路线优化控制面板 */}
+        <RouteOptimizationPanel
+          onCalculateRoutes={handleCalculateRoutes}
+          isCalculating={isCalculatingRoutes}
+          routeData={routeData}
+          onClearRoutes={handleClearRoutes}
+        />
+
+        {/* 订单信息面板 */}
+        <div className="info-panel">
+          <div className="info-content">
+            <h3>📊 订单统计</h3>
+            <div className="info-stats">
+              <div className="stat-item">
+                <span className="stat-label">总订单数</span>
+                <span className="stat-value">{markers.length}</span>
+              </div>
+              {routeData && (
+                <>
+                  <div className="stat-item">
+                    <span className="stat-label">参与计算</span>
+                    <span className="stat-value">{routeData.active_orders}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">已出库</span>
+                    <span className="stat-value">{routeData.excluded_orders}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 更新按钮和状态 */}
+        <div className="update-controls">
+          <button
+            onClick={handleManualUpdate}
+            disabled={isUpdating}
+            className={`btn btn-outline-primary ${isUpdating ? 'updating' : ''}`}
+            title="手动同步飞书数据"
+          >
+            {isUpdating ? '🔄 同步中...' : '🔄 刷新数据'}
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            className="btn btn-outline-primary btn-sm"
+            title="退出登录"
+          >
+            🚪 退出
+          </button>
+        </div>
+
+        {updateMessage && (
+          <div className={`update-message ${updateMessage.includes('❌') ? 'error' : 'success'}`}>
+            {updateMessage}
+          </div>
+        )}
+
         <MapContainer
           center={[-6.2, 106.8]}
           zoom={10}
@@ -509,6 +751,15 @@ function App() {
           
           <LocationMarker />
           
+          <LayerControl 
+            currentLayer={currentLayer} 
+            onLayerChange={handleLayerChange} 
+          />
+
+          {/* 路线叠加层 */}
+          <RouteOverlay routeData={routeData} />
+          
+          {/* 普通订单标记（红色） */}
           {markers.map((marker, index) => (
             <CircleMarker
               key={`${marker.shop_code}-${index}`}
@@ -529,80 +780,78 @@ function App() {
                     <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
                     <p><strong>📋</strong> {marker.orderType || '-'}</p>
                     <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
+                    <p><strong>📞</strong> {marker.phoneNumber || '-'}</p>
+                  </div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+
+          {/* 已出库订单标记（灰色） */}
+          {getExcludedMarkers().map((marker, index) => (
+            <CircleMarker
+              key={`excluded-${marker.shop_code}-${index}`}
+              center={[marker.latitude, marker.longitude]}
+              radius={8}
+              pathOptions={{
+                fillColor: EXCLUDED_MARKER_COLOR,
+                fillOpacity: 0.6,
+                color: '#666',
+                weight: 2,
+                opacity: 0.8,
+                dashArray: '3, 3'
+              }}
+            >
+              <Popup>
+                <div className="popup-content">
+                  <h3>📦 {marker.outlet_name}</h3>
+                  <p className="excluded-label">✅ 已出库</p>
+                  <div className="delivery-info">
+                    <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
+                    <p><strong>📋</strong> {marker.orderType || '-'}</p>
+                    <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
                   </div>
                 </div>
               </Popup>
             </CircleMarker>
           ))}
         </MapContainer>
-
-        <LayerControl 
-          currentLayer={currentLayer}
-          onLayerChange={handleLayerChange}
-        />
-
-        <InfoPanel 
-          markers={markers}
-          currentView={currentLayerConfig.name}
-          isUpdating={isUpdating}
-          onManualUpdate={handleManualUpdate}
-          updateMessage={updateMessage}
-          onLogout={handleLogout}
-        />
       </div>
     </div>
   );
 }
 
-const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdating: boolean; onManualUpdate: () => Promise<void>; updateMessage: string | null; onLogout: () => void }> = ({ markers, currentView, isUpdating, onManualUpdate, updateMessage, onLogout }) => (
-  <div className="info-panel">
-    <div className="info-content">
-      <h3>📊 Today Delivery</h3>
-      <div className="info-stats">
-        <div className="stat-item">
-          <span className="stat-label">Outlet:</span>
-          <span className="stat-value">{markers.length}</span>
-        </div>
-        {markers.length > 0 && (
-          <div className="stat-item">
-            <span className="stat-label">Total:</span>
-            <span className="stat-value">
-              {markers.reduce((sum, marker) => sum + (parseInt(marker.totalDUS) || 0), 0)} DUS
-            </span>
-          </div>
-        )}
-      </div>
-      {markers.length === 0 && (
-        <div className="no-data-message">
-          <p>📝 No delivery today</p>
-        </div>
-      )}
-      <div className="update-controls">
-        <button
-          onClick={onManualUpdate}
-          disabled={isUpdating}
-          className={`btn btn-primary ${isUpdating ? 'updating' : ''}`}
-        >
-          {isUpdating ? 'Updating...' : 'Refresh'}
-        </button>
-        {updateMessage && (
-          <div className={`update-message ${
-            updateMessage.includes('✅') ? 'success' :
-            updateMessage.includes('❌') ? 'error' : 
-            updateMessage.includes('请等待') ? 'warning' : ''
-          }`}>
-            {updateMessage}
-          </div>
-        )}
-      </div>
-      <button
-        onClick={onLogout}
-        className="btn btn-secondary"
-      >
-        登出
-      </button>
-    </div>
-  </div>
-);
+// CSV解析函数
+const parseCSV = (csvText: string): MarkerData[] => {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(',');
+  const markers: MarkerData[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',');
+    if (values.length !== headers.length) continue;
+
+    const latitude = parseFloat(values[2]);
+    const longitude = parseFloat(values[1]);
+    
+    if (isNaN(latitude) || isNaN(longitude)) continue;
+
+    markers.push({
+      shop_code: values[0] || '',
+      latitude: latitude,
+      longitude: longitude,
+      outlet_name: values[3]?.replace(/"/g, '') || '',
+      phoneNumber: values[4]?.replace(/"/g, '') || '',
+      kantong: values[5]?.replace(/"/g, '') || '',
+      orderType: values[6]?.replace(/"/g, '') || '',
+      totalDUS: values[7]?.replace(/"/g, '') || '',
+      finalPrice: values[8]?.replace(/"/g, '') || ''
+    });
+  }
+
+  return markers;
+};
 
 export default App; 
