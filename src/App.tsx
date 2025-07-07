@@ -40,6 +40,30 @@ const headquartersIcon = new L.Icon({
   shadowAnchor: [20, 30]
 });
 
+// 红色订单标记图标
+const redMarkerIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+      <circle cx="12" cy="12" r="10" fill="#dc3545" stroke="white" stroke-width="2"/>
+    </svg>
+  `),
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
+});
+
+// 灰色订单标记图标（已出库）
+const grayMarkerIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+      <circle cx="12" cy="12" r="10" fill="#6c757d" stroke="white" stroke-width="2"/>
+    </svg>
+  `),
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
+});
+
 interface MarkerData {
   shop_code: string;
   latitude: number;
@@ -789,7 +813,7 @@ function App() {
                       Math.abs(routeOrder.lng - marker.longitude) < 0.001) {
                     routeInfo = {
                       batchNumber: batch.batch_number,
-                      orderIndex: orderIndex + 1, // +1 因为要显示人类可读的序号
+                      orderIndex: orderIndex + 1, // 从1开始计数
                       batchColor: ROUTE_COLORS[batchIndex % ROUTE_COLORS.length]
                     };
                     break;
@@ -798,62 +822,74 @@ function App() {
                 if (routeInfo) break;
               }
             }
-            
-            return (
-              <CircleMarker
-                key={`${marker.shop_code}-${index}`}
-                center={[marker.latitude, marker.longitude]}
-                radius={isExcluded ? 8 : (routeInfo ? 15 : 12)}
-                pathOptions={{
-                  fillColor: isExcluded ? EXCLUDED_MARKER_COLOR : MARKER_COLOR,
-                  fillOpacity: isExcluded ? 0.6 : 0.9,
-                  color: routeInfo ? routeInfo.batchColor : (isExcluded ? '#666' : '#fff'),
-                  weight: routeInfo ? 4 : (isExcluded ? 2 : 3),
-                  opacity: isExcluded ? 0.8 : 1,
-                  dashArray: isExcluded ? '3, 3' : undefined
-                }}
-              >
-                <Popup>
-                  <div className="popup-content">
-                    <h3>🏪 {marker.outlet_name}</h3>
-                    {isExcluded && <p className="excluded-label">✅ 已出库</p>}
-                    {routeInfo && (
-                      <p className="route-info">
-                        <strong>🚛 批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
-                      </p>
-                    )}
-                    <div className="delivery-info">
-                      <p><strong>🏪</strong> {marker.shop_code}</p>
-                      <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
-                      <p><strong>📋</strong> {marker.orderType || '-'}</p>
-                      <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
-                      <p><strong>📞</strong> {marker.phoneNumber || '-'}</p>
-                      <p><strong>💰</strong> {marker.finalPrice || '-'} IDR</p>
-                      <p><strong>📦</strong> 状态: {isExcluded ? '已出库 ✅' : '待出库 🔄'}</p>
+
+            // 如果是参与路线的订单，创建带数字的自定义标记
+            if (routeInfo) {
+              const customIcon = L.divIcon({
+                className: 'custom-marker-with-number',
+                html: `
+                  <div style="
+                    width: 32px;
+                    height: 32px;
+                    background-color: #dc3545;
+                    border: 3px solid ${routeInfo.batchColor};
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    color: white;
+                    font-size: 14px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                    position: relative;
+                  ">
+                    ${routeInfo.orderIndex}
+                  </div>
+                `,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+              });
+
+              return (
+                <Marker
+                  key={`route-marker-${index}`}
+                  position={[marker.latitude, marker.longitude]}
+                  icon={customIcon}
+                >
+                  <Popup className="order-popup">
+                    <div className="route-info">
+                      <strong>批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
                     </div>
-                  </div>
+                    <div><strong>店铺:</strong> {marker.outlet_name}</div>
+                    <div><strong>电话:</strong> {marker.phoneNumber}</div>
+                    <div><strong>地址:</strong> {marker.fields?.alamat}</div>
+                    <div><strong>货物:</strong> {marker.fields?.barang} ({marker.fields?.jumlah})</div>
+                    <div><strong>重量:</strong> {marker.fields?.berat}</div>
+                    <div><strong>状态:</strong> {marker.gudangOut === '✅' ? '已出库' : '待出库'}</div>
+                  </Popup>
+                </Marker>
+              );
+            }
+
+            // 普通订单标记（未参与路线或已出库）
+            return (
+              <Marker
+                key={`marker-${index}`}
+                position={[marker.latitude, marker.longitude]}
+                icon={isExcluded ? grayMarkerIcon : redMarkerIcon}
+              >
+                <Popup className="order-popup">
+                  {isExcluded && (
+                    <div className="excluded-label">已出库 ✅</div>
+                  )}
+                  <div><strong>店铺:</strong> {marker.outlet_name}</div>
+                  <div><strong>电话:</strong> {marker.phoneNumber}</div>
+                  <div><strong>地址:</strong> {marker.fields?.alamat}</div>
+                  <div><strong>货物:</strong> {marker.fields?.barang} ({marker.fields?.jumlah})</div>
+                  <div><strong>重量:</strong> {marker.fields?.berat}</div>
+                  <div><strong>状态:</strong> {marker.gudangOut === '✅' ? '已出库' : '待出库'}</div>
                 </Popup>
-                
-                {/* 在标记上显示顺序数字 */}
-                {routeInfo && (
-                  <div 
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      fontSize: '14px',
-                      textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-                      pointerEvents: 'none',
-                      zIndex: 1000
-                    }}
-                  >
-                    {routeInfo.orderIndex}
-                  </div>
-                )}
-              </CircleMarker>
+              </Marker>
             );
           })}
 
