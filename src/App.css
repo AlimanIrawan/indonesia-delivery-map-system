@@ -32,47 +32,47 @@
   top: 20px;
   left: 20px;
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-  min-width: 280px;
-  max-width: 350px;
+  min-width: 180px;
+  max-width: 220px;
 }
 
 .info-content h3 {
-  margin: 0 0 15px 0;
+  margin: 0 0 10px 0;
   color: #333;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .info-stats {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .stat-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 8px;
   background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #007bff;
+  border-radius: 6px;
+  border-left: 3px solid #007bff;
 }
 
 .stat-label {
   font-weight: 500;
   color: #666;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .stat-value {
   font-weight: 600;
   color: #333;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .no-data-message {
@@ -390,6 +390,8 @@
     right: 10px;
     min-width: auto;
     max-width: none;
+    padding: 10px;
+    max-width: 160px;
   }
   
   .layer-control {
@@ -398,22 +400,22 @@
   }
   
   .layer-button {
-    padding: 8px 12px;
+    padding: 6px 10px;
     font-size: 12px;
-    min-width: 100px;
+    min-width: 80px;
   }
   
   .info-content h3 {
-    font-size: 16px;
+    font-size: 13px;
   }
   
   .stat-item {
-    padding: 6px 10px;
+    padding: 4px 6px;
   }
   
   .stat-label,
   .stat-value {
-    font-size: 12px;
+    font-size: 10px;
   }
   
   .location-button {
@@ -430,7 +432,7 @@
 
 @media (max-width: 480px) {
   .info-panel {
-    width: calc(100vw - 20px);
+    max-width: 140px;
     top: 10px;
     left: 10px;
   }
@@ -438,17 +440,17 @@
 
 /* 手动更新控件样式 */
 .update-controls {
-  margin-top: 20px;
-  padding-top: 15px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid #e9ecef;
 }
 
 .update-controls .btn {
   width: 100%;
-  padding: 10px 15px;
-  font-size: 14px;
+  padding: 6px 10px;
+  font-size: 11px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.3s ease;
 }
 

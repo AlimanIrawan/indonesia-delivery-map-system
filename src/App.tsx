@@ -424,12 +424,12 @@ function App() {
                 <div className="popup-content">
                   <h3>🏪 {marker.outlet_name}</h3>
                   <div className="delivery-info">
-                    <p><strong>📞 电话号码:</strong> {marker.phoneNumber || '-'}</p>
-                    <p><strong>🏷️ Kantong:</strong> {marker.kantong || '-'}</p>
-                    <p><strong>📋 订单类型:</strong> {marker.orderType || '-'}</p>
-                    <p><strong>📦 数量:</strong> {marker.totalDUS || '-'} DUS</p>
-                    <p><strong>💰 金额:</strong> Rp {marker.finalPrice || '-'}</p>
-                    <p><strong>📌 坐标:</strong> {marker.latitude.toFixed(6)}, {marker.longitude.toFixed(6)}</p>
+                    <p><strong>📞</strong> {marker.phoneNumber || '-'}</p>
+                    <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
+                    <p><strong>📋</strong> {marker.orderType || '-'}</p>
+                    <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
+                    <p><strong>💰</strong> Rp {marker.finalPrice || '-'}</p>
+                    <p><strong>📌</strong> {marker.latitude.toFixed(6)}, {marker.longitude.toFixed(6)}</p>
                   </div>
                 </div>
               </Popup>
@@ -457,19 +457,15 @@ function App() {
 const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdating: boolean; onManualUpdate: () => Promise<void>; updateMessage: string | null }> = ({ markers, currentView, isUpdating, onManualUpdate, updateMessage }) => (
   <div className="info-panel">
     <div className="info-content">
-      <h3>📊 今日送货信息</h3>
+      <h3>📊 Today Delivery</h3>
       <div className="info-stats">
         <div className="stat-item">
-          <span className="stat-label">送货地点:</span>
+          <span className="stat-label">Outlet:</span>
           <span className="stat-value">{markers.length}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">地图视图:</span>
-          <span className="stat-value">{currentView}</span>
         </div>
         {markers.length > 0 && (
           <div className="stat-item">
-            <span className="stat-label">总订单:</span>
+            <span className="stat-label">Total:</span>
             <span className="stat-value">
               {markers.reduce((sum, marker) => sum + (parseInt(marker.totalDUS) || 0), 0)} DUS
             </span>
@@ -478,8 +474,7 @@ const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdati
       </div>
       {markers.length === 0 && (
         <div className="no-data-message">
-          <p>📝 今天没有送货任务</p>
-          <p>系统会自动同步最新的送货数据</p>
+          <p>📝 No delivery today</p>
         </div>
       )}
       <div className="update-controls">
@@ -488,7 +483,7 @@ const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdati
           disabled={isUpdating}
           className={`btn btn-primary ${isUpdating ? 'updating' : ''}`}
         >
-          {isUpdating ? '正在更新...' : '手动刷新数据'}
+          {isUpdating ? 'Updating...' : 'Refresh'}
         </button>
         {updateMessage && (
           <div className={`update-message ${
