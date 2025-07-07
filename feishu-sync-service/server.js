@@ -315,7 +315,7 @@ app.post('/debug-fields', async (req, res) => {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      params: { page_size: 10 }
+      params: { page_size: 100 }
     });
 
     if (response.data.code === 0) {
