@@ -165,9 +165,24 @@ async function getFeishuData() {
     const csvData = todayRecords.map(record => {
       const fields = record.fields;
       
+      // 详细调试输出每条记录的字段信息
+      console.log(`🔍 记录详情: ${fields['Outlet Code']}`);
+      console.log(`  - 所有字段: ${Object.keys(fields).join(', ')}`);
+      console.log(`  - Outlet Code: "${fields['Outlet Code']}"`);
+      console.log(`  - latitude: "${fields['latitude']}" (类型: ${typeof fields['latitude']})`);
+      console.log(`  - longitude: "${fields['longitude']}" (类型: ${typeof fields['longitude']})`);
+      console.log(`  - Nama Pemilik: "${fields['Nama Pemilik']}"`);
+      console.log(`  - No Telepon Pemilik: "${fields['No Telepon Pemilik']}"`);
+      console.log(`  - Kantong: "${fields['Kantong']}"`);
+      console.log(`  - Order Type: "${fields['Order Type']}"`);
+      console.log(`  - Total DUS: "${fields['Total DUS']}"`);
+      console.log(`  - Final Price IDR: "${fields['Final Price IDR']}"`);
+      
       // 确保经纬度是数字
       const latitude = parseFloat(fields['latitude']) || 0;
       const longitude = parseFloat(fields['longitude']) || 0;
+      
+      console.log(`  - 解析后经纬度: lat=${latitude}, lng=${longitude}`);
       
       // 如果经纬度无效，跳过此记录
       if (latitude === 0 || longitude === 0) {
