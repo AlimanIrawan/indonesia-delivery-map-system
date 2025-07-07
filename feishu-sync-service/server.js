@@ -116,20 +116,36 @@ async function getFeishuData() {
     // 过滤今天的数据并转换格式
     const todayRecords = allRecords.filter(record => {
       const tanggalKirim = record.fields['Tanggal Kirim'];
-      if (!tanggalKirim) return false;
+      if (!tanggalKirim) {
+        console.log(`⚠️ 记录缺少发送日期字段: ${record.fields['Outlet Code'] || 'Unknown'}`);
+        return false;
+      }
       
       // 处理日期格式，可能是时间戳或日期字符串
       let recordDate;
       if (typeof tanggalKirim === 'number') {
         recordDate = new Date(tanggalKirim);
+        console.log(`📅 时间戳格式: ${tanggalKirim} -> ${recordDate.toLocaleDateString()}`);
       } else if (typeof tanggalKirim === 'string') {
         recordDate = new Date(tanggalKirim);
+        console.log(`📅 字符串格式: ${tanggalKirim} -> ${recordDate.toLocaleDateString()}`);
       } else {
+        console.log(`❌ 未知日期格式: ${typeof tanggalKirim} - ${tanggalKirim}`);
+        return false;
+      }
+      
+      // 检查日期是否有效
+      if (isNaN(recordDate.getTime())) {
+        console.log(`❌ 无效日期: ${tanggalKirim}`);
         return false;
       }
       
       const recordDateString = `${recordDate.getFullYear()}/${String(recordDate.getMonth() + 1).padStart(2, '0')}/${String(recordDate.getDate()).padStart(2, '0')}`;
-      return recordDateString === todayDate;
+      const isToday = recordDateString === todayDate;
+      
+      console.log(`🔍 日期比较: 记录日期=${recordDateString}, 今天=${todayDate}, 匹配=${isToday}`);
+      
+      return isToday;
     });
 
     console.log(`🎯 筛选出今天的记录: ${todayRecords.length} 条`);
