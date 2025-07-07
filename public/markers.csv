@@ -1,1 +1,4 @@
-shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice 
+shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice
+TEST001,-6.2088,106.8456,"Toko Makmur Jaya","081234567890","KNT001","Reguler","5","150000"
+TEST002,-6.1751,106.8271,"Warung Berkah","082345678901","KNT002","Express","3","95000"
+TEST003,-6.2297,106.8062,"Mini Market Sejahtera","083456789012","KNT003","Same Day","8","240000" 
