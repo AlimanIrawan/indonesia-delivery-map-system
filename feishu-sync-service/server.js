@@ -59,10 +59,12 @@ async function getFeishuAccessToken() {
 
 // 获取今天的日期字符串 (YYYY/MM/DD 格式)
 function getTodayDateString() {
+  // 使用Jakarta时区获取当前日期
   const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
+  const jakartaDate = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
+  const year = jakartaDate.getFullYear();
+  const month = String(jakartaDate.getMonth() + 1).padStart(2, '0');
+  const day = String(jakartaDate.getDate()).padStart(2, '0');
   return `${year}/${month}/${day}`;
 }
 
@@ -125,7 +127,10 @@ async function getFeishuData() {
       let recordDate;
       if (typeof tanggalKirim === 'number') {
         recordDate = new Date(tanggalKirim);
-        console.log(`📅 时间戳格式: ${tanggalKirim} -> ${recordDate.toLocaleDateString()}`);
+        // 转换为Jakarta时区的日期
+        const jakartaDateString = recordDate.toLocaleDateString("en-CA", {timeZone: "Asia/Jakarta"});
+        console.log(`📅 时间戳格式: ${tanggalKirim} -> Jakarta时区: ${jakartaDateString}`);
+        recordDate = new Date(jakartaDateString);
       } else if (typeof tanggalKirim === 'string') {
         recordDate = new Date(tanggalKirim);
         console.log(`📅 字符串格式: ${tanggalKirim} -> ${recordDate.toLocaleDateString()}`);
