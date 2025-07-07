@@ -114,8 +114,8 @@ interface OptimizationResult {
 }
 
 // 统一使用鲜艳的红色标记
-const MARKER_COLOR = '#FF0000';  // 鲜艳的红色
-const EXCLUDED_MARKER_COLOR = '#999999';  // 灰色（已出库）
+// const MARKER_COLOR = '#FF0000';  // 鲜艳的红色
+// const EXCLUDED_MARKER_COLOR = '#999999';  // 灰色（已出库）
 
 // 路线颜色配置
 const ROUTE_COLORS = [
