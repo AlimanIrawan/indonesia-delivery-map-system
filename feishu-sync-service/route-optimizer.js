@@ -3,7 +3,7 @@
  * 移植自Python TSP算法
  */
 
-const { Client } = require('@googlemaps/googlemaps-services-js');
+const { Client } = require('@googlemaps/google-maps-services-js');
 const NodeCache = require('node-cache');
 
 class RouteOptimizer {

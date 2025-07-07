@@ -14,7 +14,7 @@
     "@octokit/rest": "^20.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "@googlemaps/googlemaps-services-js": "^3.3.42",
+    "@googlemaps/google-maps-services-js": "^3.3.42",
     "node-cache": "^5.1.2"
   },
   "engines": {
