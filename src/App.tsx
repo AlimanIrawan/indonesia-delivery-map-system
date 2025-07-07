@@ -797,70 +797,119 @@ function App() {
           <RouteOverlay routeData={routeData} />
           
           {/* 订单标记 - 根据Gudang OUT状态分类显示 */}
-          {markers.map((marker, index) => {
-            const isExcluded = marker.gudangOut === '✅';
+          {(() => {
+            // 使用一个Set来跟踪已经匹配的路线位置，避免重复
+            const usedPositions = new Set<string>();
             
-            // 查找该订单在路线中的位置和批次
-            let routeInfo: { batchNumber: number; orderIndex: number; batchColor: string } | null = null;
-            
-            if (routeData && routeData.success && routeData.optimization_result && !isExcluded) {
-              for (let batchIndex = 0; batchIndex < routeData.optimization_result.batches.length; batchIndex++) {
-                const batch = routeData.optimization_result.batches[batchIndex];
-                for (let orderIndex = 0; orderIndex < batch.route.length; orderIndex++) {
-                  const routeOrder = batch.route[orderIndex];
-                  // 通过坐标匹配订单（允许小数点误差）
-                  if (Math.abs(routeOrder.lat - marker.latitude) < 0.001 && 
-                      Math.abs(routeOrder.lng - marker.longitude) < 0.001) {
-                    routeInfo = {
-                      batchNumber: batch.batch_number,
-                      orderIndex: orderIndex + 1, // 从1开始计数
-                      batchColor: ROUTE_COLORS[batchIndex % ROUTE_COLORS.length]
-                    };
-                    break;
+            return markers.map((marker, index) => {
+              const isExcluded = marker.gudangOut === '✅';
+              
+              // 查找该订单在路线中的位置和批次
+              let routeInfo: { batchNumber: number; orderIndex: number; batchColor: string } | null = null;
+              
+              if (routeData && routeData.success && routeData.optimization_result && !isExcluded) {
+                for (let batchIndex = 0; batchIndex < routeData.optimization_result.batches.length; batchIndex++) {
+                  const batch = routeData.optimization_result.batches[batchIndex];
+                  for (let orderIndex = 0; orderIndex < batch.route.length; orderIndex++) {
+                    const routeOrder = batch.route[orderIndex];
+                    const positionKey = `${batch.batch_number}-${orderIndex}`;
+                    
+                    // 如果这个位置已经被匹配过，跳过
+                    if (usedPositions.has(positionKey)) {
+                      continue;
+                    }
+                    
+                    // 更精确的坐标匹配（缩小误差范围）
+                    const latDiff = Math.abs(routeOrder.lat - marker.latitude);
+                    const lngDiff = Math.abs(routeOrder.lng - marker.longitude);
+                    
+                    if (latDiff < 0.0001 && lngDiff < 0.0001) {
+                      // 额外验证：如果有shop_code，也要匹配
+                      let isMatch = true;
+                      if (marker.shop_code && routeOrder.id) {
+                        isMatch = routeOrder.id.includes(marker.shop_code) || marker.shop_code.includes(routeOrder.id);
+                      }
+                      
+                      if (isMatch) {
+                        routeInfo = {
+                          batchNumber: batch.batch_number,
+                          orderIndex: orderIndex + 1, // 从1开始计数
+                          batchColor: ROUTE_COLORS[batchIndex % ROUTE_COLORS.length]
+                        };
+                        usedPositions.add(positionKey);
+                        
+                        // 调试日志
+                        console.log(`匹配成功: ${marker.outlet_name} -> 批次${batch.batch_number}-第${orderIndex + 1}站`);
+                        break;
+                      }
+                    }
                   }
+                  if (routeInfo) break;
                 }
-                if (routeInfo) break;
               }
-            }
 
-            // 如果是参与路线的订单，创建带数字的自定义标记
-            if (routeInfo) {
-              const customIcon = L.divIcon({
-                className: 'custom-marker-with-number',
-                html: `
-                  <div style="
-                    width: 32px;
-                    height: 32px;
-                    background-color: #dc3545;
-                    border: 3px solid ${routeInfo.batchColor};
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: bold;
-                    color: white;
-                    font-size: 14px;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                    position: relative;
-                  ">
-                    ${routeInfo.orderIndex}
-                  </div>
-                `,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-              });
+              // 如果是参与路线的订单，创建带数字的自定义标记
+              if (routeInfo) {
+                const customIcon = L.divIcon({
+                  className: 'custom-marker-with-number',
+                  html: `
+                    <div style="
+                      width: 32px;
+                      height: 32px;
+                      background-color: #dc3545;
+                      border: 3px solid ${routeInfo.batchColor};
+                      border-radius: 50%;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-weight: bold;
+                      color: white;
+                      font-size: 14px;
+                      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                      position: relative;
+                    ">
+                      ${routeInfo.orderIndex}
+                    </div>
+                  `,
+                  iconSize: [32, 32],
+                  iconAnchor: [16, 16]
+                });
 
+                return (
+                  <Marker
+                    key={`route-marker-${index}-${routeInfo.batchNumber}-${routeInfo.orderIndex}`}
+                    position={[marker.latitude, marker.longitude]}
+                    icon={customIcon}
+                  >
+                    <Popup className="order-popup">
+                      <div className="route-info">
+                        <strong>批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
+                      </div>
+                      <div><strong>店铺:</strong> {marker.outlet_name}</div>
+                      <div><strong>编码:</strong> {marker.shop_code}</div>
+                      <div><strong>电话:</strong> {marker.phoneNumber}</div>
+                      <div><strong>地址:</strong> {marker.fields?.alamat}</div>
+                      <div><strong>货物:</strong> {marker.fields?.barang} ({marker.fields?.jumlah})</div>
+                      <div><strong>重量:</strong> {marker.fields?.berat}</div>
+                      <div><strong>状态:</strong> {marker.gudangOut === '✅' ? '已出库' : '待出库'}</div>
+                    </Popup>
+                  </Marker>
+                );
+              }
+
+              // 普通订单标记（未参与路线或已出库）
               return (
                 <Marker
-                  key={`route-marker-${index}`}
+                  key={`marker-${index}`}
                   position={[marker.latitude, marker.longitude]}
-                  icon={customIcon}
+                  icon={isExcluded ? grayMarkerIcon : redMarkerIcon}
                 >
                   <Popup className="order-popup">
-                    <div className="route-info">
-                      <strong>批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
-                    </div>
+                    {isExcluded && (
+                      <div className="excluded-label">已出库 ✅</div>
+                    )}
                     <div><strong>店铺:</strong> {marker.outlet_name}</div>
+                    <div><strong>编码:</strong> {marker.shop_code}</div>
                     <div><strong>电话:</strong> {marker.phoneNumber}</div>
                     <div><strong>地址:</strong> {marker.fields?.alamat}</div>
                     <div><strong>货物:</strong> {marker.fields?.barang} ({marker.fields?.jumlah})</div>
@@ -869,29 +918,8 @@ function App() {
                   </Popup>
                 </Marker>
               );
-            }
-
-            // 普通订单标记（未参与路线或已出库）
-            return (
-              <Marker
-                key={`marker-${index}`}
-                position={[marker.latitude, marker.longitude]}
-                icon={isExcluded ? grayMarkerIcon : redMarkerIcon}
-              >
-                <Popup className="order-popup">
-                  {isExcluded && (
-                    <div className="excluded-label">已出库 ✅</div>
-                  )}
-                  <div><strong>店铺:</strong> {marker.outlet_name}</div>
-                  <div><strong>电话:</strong> {marker.phoneNumber}</div>
-                  <div><strong>地址:</strong> {marker.fields?.alamat}</div>
-                  <div><strong>货物:</strong> {marker.fields?.barang} ({marker.fields?.jumlah})</div>
-                  <div><strong>重量:</strong> {marker.fields?.berat}</div>
-                  <div><strong>状态:</strong> {marker.gudangOut === '✅' ? '已出库' : '待出库'}</div>
-                </Popup>
-              </Marker>
-            );
-          })}
+            });
+          })()}
 
           {/* 移除原来分开的已出库订单标记，因为现在统一处理了 */}
         </MapContainer>
