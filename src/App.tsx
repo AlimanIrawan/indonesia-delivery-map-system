@@ -41,14 +41,15 @@ const headquartersIcon = new L.Icon({
 });
 
 interface MarkerData {
+  shop_code: string;
   latitude: number;
   longitude: number;
-  outletName: string;
-  shopCode: string;
-  kecamatan?: string;
-  phoneNumber?: string;
-  poType?: string;
-  deliveryDate?: string;
+  outlet_name: string;
+  phoneNumber: string;
+  kantong: string;
+  orderType: string;
+  totalDUS: string;
+  finalPrice: string;
 }
 
 // 统一使用鲜艳的红色标记
@@ -214,6 +215,34 @@ const LocationMarker: React.FC = () => {
   );
 };
 
+// 辅助函数：解析CSV行，处理引号和逗号
+const parseCSVLine = (line: string): string[] => {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current);
+  return result;
+};
+
+// 辅助函数：清理引号
+const cleanQuotes = (str: string): string => {
+  return str.replace(/^"|"$/g, '');
+};
+
 function App() {
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -221,57 +250,37 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [currentLayer, setCurrentLayer] = useState<MapLayerType>('street');
 
-  // 处理CSV数据
-  const processCSVData = useCallback((csvText: string) => {
-    console.log('开始处理CSV数据');
-    
-    const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    const processedMarkers: MarkerData[] = [];
-    
+  const parseCSV = (csvText: string): MarkerData[] => {
+    const lines = csvText.trim().split('\n');
+    if (lines.length <= 1) return [];
+
+    const headers = lines[0].split(',');
+    const data: MarkerData[] = [];
+
     for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      try {
-        const values = line.split(',').map(v => v.trim());
-        const row: any = {};
+      const values = parseCSVLine(lines[i]);
+      if (values.length >= headers.length) {
+        const lat = parseFloat(values[1]);
+        const lng = parseFloat(values[2]);
         
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-        
-        const lat = parseFloat(row.latitude);
-        const lng = parseFloat(row.longitude);
-        
-        if (isNaN(lat) || isNaN(lng)) {
-          console.warn(`第 ${i + 1} 行数据坐标无效:`, row);
-          continue;
+        if (!isNaN(lat) && !isNaN(lng)) {
+          data.push({
+            shop_code: values[0] || '',
+            latitude: lat,
+            longitude: lng,
+            outlet_name: cleanQuotes(values[3]) || '',
+            phoneNumber: cleanQuotes(values[4]) || '',
+            kantong: cleanQuotes(values[5]) || '',
+            orderType: cleanQuotes(values[6]) || '',
+            totalDUS: cleanQuotes(values[7]) || '',
+            finalPrice: cleanQuotes(values[8]) || ''
+          });
         }
-        
-        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-          console.warn(`第 ${i + 1} 行数据坐标超出范围:`, row);
-          continue;
-        }
-        
-        processedMarkers.push({
-          latitude: lat,
-          longitude: lng,
-          outletName: row.outlet_name || row.nama_pemilik || '未知店铺',
-          shopCode: row.shop_code || row.outlet_code || '',
-          kecamatan: row.kecamatan || '未知区域',
-          phoneNumber: row.phone_number || '',
-          poType: row.po_type || '',
-          deliveryDate: row.delivery_date || ''
-        });
-      } catch (error) {
-        console.error(`处理第 ${i + 1} 行数据时出错:`, error);
       }
     }
-    
-    console.log('处理完成，有效标记:', processedMarkers.length);
-    return processedMarkers;
-  }, []);
+
+    return data;
+  };
 
   // 加载CSV数据
   const loadData = useCallback(async () => {
@@ -285,7 +294,7 @@ function App() {
       }
       
       const csvText = await response.text();
-      const processedMarkers = processCSVData(csvText);
+      const processedMarkers = parseCSV(csvText);
       setMarkers(processedMarkers);
       setLastUpdate(new Date().toLocaleString('zh-CN'));
     } catch (error) {
@@ -294,7 +303,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [processCSVData]);
+  }, []);
 
   // 页面加载时获取数据
   useEffect(() => {
@@ -347,7 +356,7 @@ function App() {
           
           {markers.map((marker, index) => (
             <CircleMarker
-              key={`${marker.shopCode}-${index}`}
+              key={`${marker.shop_code}-${index}`}
               center={[marker.latitude, marker.longitude]}
               radius={12}
               pathOptions={{
@@ -360,22 +369,13 @@ function App() {
             >
               <Popup>
                 <div className="popup-content">
-                  <h3>🚚 送货地点</h3>
+                  <h3>🏪 {marker.outlet_name}</h3>
                   <div className="delivery-info">
-                    <p><strong>店铺名称:</strong> {marker.outletName}</p>
-                    {marker.phoneNumber && (
-                      <p><strong>📞 电话号码:</strong> {marker.phoneNumber}</p>
-                    )}
-                    {marker.poType && (
-                      <p><strong>📦 PO类型:</strong> {marker.poType}</p>
-                    )}
-                    {marker.deliveryDate && (
-                      <p><strong>📅 送货日期:</strong> {marker.deliveryDate}</p>
-                    )}
-                    <p><strong>🏪 门店代码:</strong> {marker.shopCode}</p>
-                    {marker.kecamatan && (
-                      <p><strong>📍 区域:</strong> {marker.kecamatan}</p>
-                    )}
+                    <p><strong>📞 电话号码:</strong> {marker.phoneNumber || '-'}</p>
+                    <p><strong>🏷️ Kantong:</strong> {marker.kantong || '-'}</p>
+                    <p><strong>📋 订单类型:</strong> {marker.orderType || '-'}</p>
+                    <p><strong>📦 数量:</strong> {marker.totalDUS || '-'} DUS</p>
+                    <p><strong>💰 金额:</strong> Rp {marker.finalPrice || '-'}</p>
                     <p><strong>📌 坐标:</strong> {marker.latitude.toFixed(6)}, {marker.longitude.toFixed(6)}</p>
                   </div>
                 </div>
@@ -389,20 +389,45 @@ function App() {
           onLayerChange={handleLayerChange}
         />
 
-        <div className="info-panel">
-          <h4>🚚 送货系统信息</h4>
-          <p>今日送货地点: {markers.length}</p>
-          <p>总部位置: 已标记 ⭐</p>
-          <p>当前视图: {currentLayerConfig.name}</p>
-          <p>最后更新: {lastUpdate}</p>
-          <p>同步频率: 每日 09:00 & 14:00</p>
-          <button onClick={loadData} className="btn btn-outline-primary btn-sm">
-            🔄 刷新数据
-          </button>
-        </div>
+        <InfoPanel 
+          markers={markers}
+          currentView={currentLayerConfig.name}
+        />
       </div>
     </div>
   );
 }
+
+const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string }> = ({ markers, currentView }) => (
+  <div className="info-panel">
+    <div className="info-content">
+      <h3>📊 今日送货信息</h3>
+      <div className="info-stats">
+        <div className="stat-item">
+          <span className="stat-label">送货地点:</span>
+          <span className="stat-value">{markers.length}</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">地图视图:</span>
+          <span className="stat-value">{currentView}</span>
+        </div>
+        {markers.length > 0 && (
+          <div className="stat-item">
+            <span className="stat-label">总订单:</span>
+            <span className="stat-value">
+              {markers.reduce((sum, marker) => sum + (parseInt(marker.totalDUS) || 0), 0)} DUS
+            </span>
+          </div>
+        )}
+      </div>
+      {markers.length === 0 && (
+        <div className="no-data-message">
+          <p>📝 今天没有送货任务</p>
+          <p>系统会自动同步最新的送货数据</p>
+        </div>
+      )}
+    </div>
+  </div>
+);
 
 export default App; 
