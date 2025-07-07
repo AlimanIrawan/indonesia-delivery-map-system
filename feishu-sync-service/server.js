@@ -150,6 +150,12 @@ async function getFeishuData() {
       
       console.log(`🔍 日期比较: 记录日期=${recordDateString}, 今天=${todayDate}, 匹配=${isToday}`);
       
+      if (isToday) {
+        // 调试输出：显示记录的所有字段名称
+        console.log(`🔍 今天的记录字段: ${record.fields['Outlet Code']} - 字段列表: ${Object.keys(record.fields).join(', ')}`);
+        console.log(`📍 经纬度字段值: latitude=${record.fields['latitude']}, longitude=${record.fields['longitude']}`);
+      }
+      
       return isToday;
     });
 
