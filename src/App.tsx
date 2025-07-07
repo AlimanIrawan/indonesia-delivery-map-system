@@ -15,29 +15,29 @@ L.Icon.Default.mergeOptions({
 // 创建总部自定义图标
 const headquartersIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
       <defs>
         <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="3" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.4)"/>
+          <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.4)"/>
         </filter>
       </defs>
-      <polygon points="40,8 51,29 74,29 56.5,45 65,68 40,53 15,68 23.5,45 6,29 29,29" 
+      <polygon points="30,5 38,22 57,22 43,34 50,52 30,40 10,52 17,34 3,22 22,22" 
                fill="#FF8C00" 
                stroke="#FFFFFF" 
-               stroke-width="4" 
+               stroke-width="3" 
                filter="url(#shadow)"/>
-      <polygon points="40,14 49,32 68,32 53,44 59,62 40,50 21,62 27,44 12,32 31,32" 
+      <polygon points="30,10 36,24 50,24 39,33 44,48 30,37 16,48 21,33 10,24 24,24" 
                fill="#FFD700" 
                stroke="#FFFFFF" 
                stroke-width="2"/>
     </svg>
   `),
-  iconSize: [80, 80],
-  iconAnchor: [40, 80],
-  popupAnchor: [0, -80],
+  iconSize: [60, 60],
+  iconAnchor: [30, 30],
+  popupAnchor: [0, -30],
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
-  shadowSize: [82, 82],
-  shadowAnchor: [26, 82]
+  shadowSize: [60, 60],
+  shadowAnchor: [20, 30]
 });
 
 interface MarkerData {
@@ -424,12 +424,9 @@ function App() {
                 <div className="popup-content">
                   <h3>🏪 {marker.outlet_name}</h3>
                   <div className="delivery-info">
-                    <p><strong>📞</strong> {marker.phoneNumber || '-'}</p>
                     <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
                     <p><strong>📋</strong> {marker.orderType || '-'}</p>
                     <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
-                    <p><strong>💰</strong> Rp {marker.finalPrice || '-'}</p>
-                    <p><strong>📌</strong> {marker.latitude.toFixed(6)}, {marker.longitude.toFixed(6)}</p>
                   </div>
                 </div>
               </Popup>
