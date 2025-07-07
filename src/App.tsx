@@ -247,7 +247,6 @@ function App() {
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<string>('');
   const [currentLayer, setCurrentLayer] = useState<MapLayerType>('street');
 
   const parseCSV = (csvText: string): MarkerData[] => {
@@ -296,7 +295,6 @@ function App() {
       const csvText = await response.text();
       const processedMarkers = parseCSV(csvText);
       setMarkers(processedMarkers);
-      setLastUpdate(new Date().toLocaleString('zh-CN'));
     } catch (error) {
       console.error('加载数据失败:', error);
       setError('加载数据失败，请检查网络连接');
