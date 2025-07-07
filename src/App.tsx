@@ -243,6 +243,85 @@ const cleanQuotes = (str: string): string => {
   return str.replace(/^"|"$/g, '');
 };
 
+// 登录凭据
+const LOGIN_CREDENTIALS = {
+  username: 'One Meter',
+  password: 'prioritaspelayanan'
+};
+
+// 登录组件
+const LoginForm: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    // 模拟网络延迟
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    if (username === LOGIN_CREDENTIALS.username && password === LOGIN_CREDENTIALS.password) {
+      localStorage.setItem('isLoggedIn', 'true');
+      onLogin();
+    } else {
+      setError('用户名或密码错误');
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="login-overlay">
+      <div className="login-container">
+        <div className="login-header">
+          <h2>🗺️ Delivery Map System</h2>
+          <p>请登录以访问地图系统</p>
+        </div>
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label htmlFor="username">用户名:</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="请输入用户名"
+              required
+              disabled={isLoading}
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">密码:</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="请输入密码"
+              required
+              disabled={isLoading}
+            />
+          </div>
+          {error && <div className="error-message">{error}</div>}
+          <button 
+            type="submit" 
+            className={`login-btn ${isLoading ? 'loading' : ''}`}
+            disabled={isLoading}
+          >
+            {isLoading ? '登录中...' : '登录'}
+          </button>
+        </form>
+        <div className="login-footer">
+          <p>🚚 印尼送货地图管理系统</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -251,6 +330,7 @@ function App() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastManualUpdate, setLastManualUpdate] = useState(0);
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const parseCSV = (csvText: string): MarkerData[] => {
     const lines = csvText.trim().split('\n');
@@ -363,6 +443,28 @@ function App() {
     loadData();
   }, [loadData]);
 
+  // 检查登录状态
+  useEffect(() => {
+    const loginStatus = localStorage.getItem('isLoggedIn');
+    setIsLoggedIn(loginStatus === 'true');
+  }, []);
+
+  // 登录处理
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+  };
+
+  // 登出处理
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    setIsLoggedIn(false);
+  };
+
+  // 如果未登录，显示登录界面
+  if (!isLoggedIn) {
+    return <LoginForm onLogin={handleLogin} />;
+  }
+
   // 切换地图图层
   const handleLayerChange = (layer: MapLayerType) => {
     setCurrentLayer(layer);
@@ -445,13 +547,14 @@ function App() {
           isUpdating={isUpdating}
           onManualUpdate={handleManualUpdate}
           updateMessage={updateMessage}
+          onLogout={handleLogout}
         />
       </div>
     </div>
   );
 }
 
-const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdating: boolean; onManualUpdate: () => Promise<void>; updateMessage: string | null }> = ({ markers, currentView, isUpdating, onManualUpdate, updateMessage }) => (
+const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdating: boolean; onManualUpdate: () => Promise<void>; updateMessage: string | null; onLogout: () => void }> = ({ markers, currentView, isUpdating, onManualUpdate, updateMessage, onLogout }) => (
   <div className="info-panel">
     <div className="info-content">
       <h3>📊 Today Delivery</h3>
@@ -492,6 +595,12 @@ const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdati
           </div>
         )}
       </div>
+      <button
+        onClick={onLogout}
+        className="btn btn-secondary"
+      >
+        登出
+      </button>
     </div>
   </div>
 );
