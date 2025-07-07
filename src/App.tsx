@@ -234,45 +234,111 @@ const RouteOverlay: React.FC<{
     return null;
   }
 
-  const renderRouteLines = () => {
-    return routeData.optimization_result!.batches.map((batch, batchIndex) => {
-      const color = ROUTE_COLORS[batchIndex % ROUTE_COLORS.length];
-      
-      // 构建路线路径：总部 -> 各个订单点 -> 总部
-      const routePath: [number, number][] = [HEADQUARTERS_POSITION];
-      
-      batch.route.forEach(order => {
-        routePath.push([order.lat, order.lng]);
-      });
-      
-      routePath.push(HEADQUARTERS_POSITION);
+  return (
+    <>
+      {/* 渲染路线 */}
+      {routeData.optimization_result.batches.map((batch, batchIndex) => {
+        const color = ROUTE_COLORS[batchIndex % ROUTE_COLORS.length];
+        
+        // 构建路线路径：总部 -> 各个订单点 -> 总部
+        const routePath: [number, number][] = [HEADQUARTERS_POSITION];
+        
+        batch.route.forEach(order => {
+          routePath.push([order.lat, order.lng]);
+        });
+        
+        routePath.push(HEADQUARTERS_POSITION);
 
-      return (
-        <Polyline
-          key={`route-${batch.batch_number}`}
-          positions={routePath}
-          pathOptions={{
-            color: color,
-            weight: 4,
-            opacity: 0.8,
-            dashArray: '10, 5'
-          }}
-        >
-          <Popup>
-            <div>
-              <h4>批次 {batch.batch_number}</h4>
-              <p>距离: {batch.total_distance.toFixed(1)} km</p>
-              <p>时间: {batch.total_duration.toFixed(0)} 分钟</p>
-              <p>货物: {batch.capacity_used} 件</p>
-              <p>路线: {batch.route.length} 个地点</p>
-            </div>
-          </Popup>
-        </Polyline>
-      );
-    });
-  };
+        return (
+          <React.Fragment key={`route-${batch.batch_number}`}>
+            {/* 路线线条 */}
+            <Polyline
+              positions={routePath}
+              pathOptions={{
+                color: color,
+                weight: 5,
+                opacity: 0.8,
+                lineCap: 'round',
+                lineJoin: 'round'
+              }}
+            >
+              <Popup>
+                <div className="route-popup">
+                  <h4>🚛 批次 {batch.batch_number}</h4>
+                  <div className="route-details">
+                    <p><strong>📏 距离:</strong> {batch.total_distance.toFixed(1)} km</p>
+                    <p><strong>⏱️ 时间:</strong> {batch.total_duration.toFixed(0)} 分钟</p>
+                    <p><strong>📦 货物:</strong> {batch.capacity_used} DUS</p>
+                    <p><strong>🏪 站点:</strong> {batch.route.length} 个</p>
+                    <p><strong>🛣️ 路线:</strong> 优化路径</p>
+                  </div>
+                  <div className="route-sequence">
+                    <h5>📋 访问顺序:</h5>
+                    <ol className="sequence-list">
+                      <li>🏢 总部 (出发)</li>
+                      {batch.route.map((order, index) => (
+                        <li key={order.id}>
+                          🏪 {order.name} ({order.dus_count} DUS)
+                        </li>
+                      ))}
+                      <li>🏢 总部 (返回)</li>
+                    </ol>
+                  </div>
+                </div>
+              </Popup>
+            </Polyline>
 
-  return <>{renderRouteLines()}</>;
+            {/* 为每个订单点添加数字标注 */}
+            {batch.route.map((order, orderIndex) => (
+              <CircleMarker
+                key={`order-label-${batch.batch_number}-${orderIndex}`}
+                center={[order.lat, order.lng]}
+                radius={18}
+                pathOptions={{
+                  fillColor: 'white',
+                  fillOpacity: 0.95,
+                  color: color,
+                  weight: 3,
+                  opacity: 1
+                }}
+              >
+                <Popup>
+                  <div className="order-sequence-popup">
+                    <h4>📍 第 {orderIndex + 1} 站</h4>
+                    <div className="order-details">
+                      <p><strong>🏪 店铺:</strong> {order.name}</p>
+                      <p><strong>📱 电话:</strong> {order.phone}</p>
+                      <p><strong>📦 货物:</strong> {order.dus_count} DUS</p>
+                      <p><strong>🚛 批次:</strong> {batch.batch_number}</p>
+                      <p><strong>📍 地址:</strong> {order.address}</p>
+                    </div>
+                  </div>
+                </Popup>
+                {/* 数字标注文本 */}
+                <div 
+                  className="order-number-label" 
+                  style={{ 
+                    color: color,
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    fontWeight: 700,
+                    fontSize: '16px',
+                    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
+                    pointerEvents: 'none',
+                    zIndex: 1000
+                  }}
+                >
+                  {orderIndex + 1}
+                </div>
+              </CircleMarker>
+            ))}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
 };
 
 // 图层切换组件

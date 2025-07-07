@@ -874,3 +874,220 @@
     font-size: 12px;
   }
 } 
+
+/* 路线加载指示器 */
+.route-loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 123, 255, 0.9);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 25px;
+  z-index: 2000;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: pulse 1.5s infinite;
+}
+
+/* 路线弹窗样式 */
+.route-popup {
+  min-width: 250px;
+  max-width: 300px;
+}
+
+.route-popup h4 {
+  color: #333;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 6px;
+}
+
+.route-details {
+  margin-bottom: 15px;
+}
+
+.route-details p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.route-details strong {
+  color: #333;
+  min-width: 60px;
+  display: inline-block;
+}
+
+.route-sequence {
+  border-top: 1px solid #e9ecef;
+  padding-top: 12px;
+}
+
+.route-sequence h5 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sequence-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #555;
+}
+
+.sequence-list li {
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+/* 订单顺序弹窗样式 */
+.order-sequence-popup {
+  min-width: 200px;
+  max-width: 250px;
+}
+
+.order-sequence-popup h4 {
+  color: #e74c3c;
+  margin: 0 0 10px 0;
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 2px solid #e74c3c;
+  padding-bottom: 6px;
+}
+
+.order-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-details p {
+  margin: 0;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.4;
+}
+
+.order-details strong {
+  color: #333;
+  min-width: 50px;
+  display: inline-block;
+}
+
+/* 数字标注样式 - 保留作为备用 */
+.order-number-label {
+  /* 样式现在主要使用内联样式，这里保留备用设置 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  user-select: none;
+}
+
+/* 地图标记层级调整 */
+.leaflet-marker-pane {
+  z-index: 600;
+}
+
+.leaflet-overlay-pane {
+  z-index: 500;
+}
+
+/* 路线标记特殊样式 */
+.leaflet-interactive[stroke="#FF0000"],
+.leaflet-interactive[stroke="#0066FF"],
+.leaflet-interactive[stroke="#00AA00"],
+.leaflet-interactive[stroke="#FF8800"],
+.leaflet-interactive[stroke="#8800FF"],
+.leaflet-interactive[stroke="#00AAAA"] {
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* 路线显示增强效果 */
+.leaflet-container .leaflet-overlay-pane svg {
+  pointer-events: auto;
+}
+
+.leaflet-container .leaflet-overlay-pane svg path {
+  transition: stroke-width 0.2s ease;
+}
+
+.leaflet-container .leaflet-overlay-pane svg path:hover {
+  stroke-width: 8 !important;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.4));
+}
+
+/* 响应式设计 - 路线相关 */
+@media (max-width: 768px) {
+  .route-popup {
+    min-width: 200px;
+    max-width: 250px;
+  }
+  
+  .route-popup h4 {
+    font-size: 14px;
+  }
+  
+  .route-details p {
+    font-size: 12px;
+  }
+  
+  .route-sequence h5 {
+    font-size: 13px;
+  }
+  
+  .sequence-list {
+    font-size: 11px;
+  }
+  
+  .order-sequence-popup {
+    min-width: 180px;
+    max-width: 220px;
+  }
+  
+  .order-sequence-popup h4 {
+    font-size: 14px;
+  }
+  
+  .order-details p {
+    font-size: 11px;
+  }
+  
+  .order-number-label {
+    font-size: 14px;
+  }
+  
+  .route-loading-indicator {
+    padding: 12px 20px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .route-popup {
+    min-width: 160px;
+    max-width: 200px;
+  }
+  
+  .route-details strong {
+    min-width: 50px;
+  }
+  
+  .order-details strong {
+    min-width: 40px;
+  }
+  
+  .order-number-label {
+    font-size: 12px;
+  }
+  
+  .route-loading-indicator {
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+} 
