@@ -308,3 +308,5 @@ app.listen(PORT, () => {
   console.log(`🌍 服务地址: https://feishu-delivery-sync.onrender.com`);
   console.log('/' .repeat(60));
 }); 
+
+// 版本更新: 添加手动刷新API支持 - v1.1.0 
