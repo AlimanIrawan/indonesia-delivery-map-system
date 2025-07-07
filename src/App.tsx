@@ -648,14 +648,6 @@ function App() {
 
   const currentLayerConfig = MAP_LAYERS[currentLayer];
 
-  // 获取已出库订单（用于灰色显示）
-  const getExcludedMarkers = (): MarkerData[] => {
-    if (!routeData || !routeData.excluded_points) {
-      return [];
-    }
-    return routeData.excluded_points;
-  };
-
   return (
     <div className="App">
       <div className="map-container">
