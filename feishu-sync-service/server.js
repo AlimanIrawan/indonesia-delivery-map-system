@@ -300,6 +300,89 @@ app.post('/sync', async (req, res) => {
   }
 });
 
+// 调试字段结构端点
+app.post('/debug-fields', async (req, res) => {
+  try {
+    const token = await getFeishuAccessToken();
+    const todayDate = getTodayDateString();
+    
+    console.log(`📅 调试今天的字段结构: ${todayDate}`);
+    
+    // 获取前10条记录
+    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records`;
+    const response = await axios.get(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      params: { page_size: 10 }
+    });
+
+    if (response.data.code === 0) {
+      const records = response.data.data.items || [];
+      
+      // 过滤今天的记录
+      const todayRecords = records.filter(record => {
+        const tanggalKirim = record.fields['Tanggal Kirim EsKrim'];
+        if (!tanggalKirim) return false;
+        
+        let recordDate = new Date(tanggalKirim);
+        if (typeof tanggalKirim === 'number') {
+          const jakartaDateString = recordDate.toLocaleDateString("en-CA", {timeZone: "Asia/Jakarta"});
+          recordDate = new Date(jakartaDateString);
+        }
+        
+        const recordDateString = `${recordDate.getFullYear()}/${String(recordDate.getMonth() + 1).padStart(2, '0')}/${String(recordDate.getDate()).padStart(2, '0')}`;
+        return recordDateString === todayDate;
+      });
+
+      console.log(`找到 ${todayRecords.length} 条今天的记录`);
+      
+      // 显示字段结构
+      const fieldInfo = todayRecords.map((record, index) => {
+        const fields = record.fields;
+        return {
+          recordIndex: index + 1,
+          outletCode: fields['Outlet Code'],
+          allFieldNames: Object.keys(fields),
+          latitudeField: {
+            value: fields['latitude'],
+            type: typeof fields['latitude']
+          },
+          longitudeField: {
+            value: fields['longitude'], 
+            type: typeof fields['longitude']
+          },
+          // 检查可能的其他坐标字段名
+          possibleLatFields: Object.keys(fields).filter(key => 
+            key.toLowerCase().includes('lat') || 
+            key.toLowerCase().includes('纬度')
+          ),
+          possibleLngFields: Object.keys(fields).filter(key => 
+            key.toLowerCase().includes('lng') || 
+            key.toLowerCase().includes('long') ||
+            key.toLowerCase().includes('经度')
+          )
+        };
+      });
+      
+      res.json({
+        success: true,
+        todayDate: todayDate,
+        recordCount: todayRecords.length,
+        fieldInfo: fieldInfo
+      });
+    } else {
+      throw new Error(`获取数据失败: ${response.data.msg}`);
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // 调试同步端点 - 返回详细的执行过程
 app.post('/debug-sync', async (req, res) => {
   const logs = [];
