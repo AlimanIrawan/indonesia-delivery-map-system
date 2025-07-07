@@ -115,7 +115,7 @@ async function getFeishuData() {
 
     // 过滤今天的数据并转换格式
     const todayRecords = allRecords.filter(record => {
-      const tanggalKirim = record.fields['Tanggal Kirim'];
+      const tanggalKirim = record.fields['Tanggal Kirim EsKrim'];
       if (!tanggalKirim) {
         console.log(`⚠️ 记录缺少发送日期字段: ${record.fields['Outlet Code'] || 'Unknown'}`);
         return false;
