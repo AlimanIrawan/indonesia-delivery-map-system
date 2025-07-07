@@ -156,17 +156,17 @@ const RouteOptimizationPanel: React.FC<{
   return (
     <div className="route-optimization-panel">
       <div className="panel-header">
-        <h3>🚛 路线优化</h3>
+        <h3>🚛 路线</h3>
       </div>
       
       <div className="panel-actions">
         <button
           onClick={onCalculateRoutes}
           disabled={isCalculating}
-          className={`btn btn-primary ${isCalculating ? 'calculating' : ''}`}
+          className={`btn btn-primary btn-sm ${isCalculating ? 'calculating' : ''}`}
           title="计算最优送货路线"
         >
-          {isCalculating ? '计算中...' : '🧮 计算路线'}
+          {isCalculating ? '⏳' : '🧮'}
         </button>
         
         {routeData && (
@@ -175,46 +175,40 @@ const RouteOptimizationPanel: React.FC<{
             className="btn btn-outline-primary btn-sm"
             title="清除路线显示"
           >
-            🧹 清除路线
+            🧹
           </button>
         )}
       </div>
 
       {routeData && routeData.success && routeData.optimization_result && (
         <div className="route-summary">
-          <h4>📊 路线统计</h4>
           <div className="summary-stats">
             <div className="stat-row">
-              <span>参与计算:</span>
-              <span>{routeData.active_orders} 个订单</span>
+              <span>📦</span>
+              <span>{routeData.active_orders}</span>
             </div>
             <div className="stat-row">
-              <span>已出库:</span>
-              <span>{routeData.excluded_orders} 个订单</span>
+              <span>✅</span>
+              <span>{routeData.excluded_orders}</span>
             </div>
             <div className="stat-row">
-              <span>总距离:</span>
-              <span>{routeData.optimization_result.total_distance.toFixed(1)} km</span>
+              <span>📏</span>
+              <span>{routeData.optimization_result.total_distance.toFixed(0)}km</span>
             </div>
             <div className="stat-row">
-              <span>总时间:</span>
-              <span>{routeData.optimization_result.total_duration.toFixed(0)} 分钟</span>
-            </div>
-            <div className="stat-row">
-              <span>批次数:</span>
-              <span>{routeData.optimization_result.batches.length} 个</span>
+              <span>⏱️</span>
+              <span>{routeData.optimization_result.total_duration.toFixed(0)}分</span>
             </div>
           </div>
           
           <div className="batch-legend">
-            <h5>📋 批次图例</h5>
             {routeData.optimization_result.batches.map((batch, index) => (
               <div key={batch.batch_number} className="legend-item">
                 <div 
                   className="color-indicator" 
                   style={{ backgroundColor: ROUTE_COLORS[index % ROUTE_COLORS.length] }}
                 ></div>
-                <span>批次{batch.batch_number}: {batch.route.length}站</span>
+                <span>批次{batch.batch_number}</span>
               </div>
             ))}
           </div>
@@ -716,23 +710,23 @@ function App() {
           {/* 订单信息面板 */}
           <div className="info-panel">
             <div className="info-content">
-              <h3>📊 订单统计</h3>
+              <h3>📊 统计</h3>
               <div className="info-stats">
                 <div className="stat-item">
-                  <span className="stat-label">总订单数</span>
+                  <span className="stat-label">📦</span>
                   <span className="stat-value">{markers.length}</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-label">待出库</span>
+                  <span className="stat-label">🔴</span>
                   <span className="stat-value">{markers.filter(m => m.gudangOut !== '✅').length}</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-label">已出库</span>
+                  <span className="stat-label">✅</span>
                   <span className="stat-value">{markers.filter(m => m.gudangOut === '✅').length}</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-label">总货物</span>
-                  <span className="stat-value">{markers.reduce((sum, m) => sum + (parseInt(m.totalDUS) || 0), 0)} DUS</span>
+                  <span className="stat-label">📋</span>
+                  <span className="stat-value">{markers.reduce((sum, m) => sum + (parseInt(m.totalDUS) || 0), 0)}</span>
                 </div>
               </div>
             </div>
@@ -747,23 +741,23 @@ function App() {
           />
         </div>
 
-        {/* 更新按钮和状态 */}
-        <div className="update-controls">
+        {/* 右上角控制按钮 */}
+        <div className="top-right-controls">
           <button
             onClick={handleManualUpdate}
             disabled={isUpdating}
-            className={`btn btn-outline-primary ${isUpdating ? 'updating' : ''}`}
+            className={`control-btn ${isUpdating ? 'updating' : ''}`}
             title="手动同步飞书数据"
           >
-            {isUpdating ? '🔄 同步中...' : '🔄 刷新数据'}
+            {isUpdating ? '⏳' : '🔄'}
           </button>
           
           <button
             onClick={handleLogout}
-            className="btn btn-outline-primary btn-sm"
+            className="control-btn"
             title="退出登录"
           >
-            🚪 退出
+            🚪
           </button>
         </div>
 
@@ -885,13 +879,9 @@ function App() {
                       <div className="route-info">
                         <strong>批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
                       </div>
-                      <div><strong>店铺:</strong> {marker.outlet_name}</div>
-                      <div><strong>编码:</strong> {marker.shop_code}</div>
-                      <div><strong>电话:</strong> {marker.phoneNumber}</div>
-                      <div><strong>地址:</strong> {marker.fields?.alamat}</div>
-                      <div><strong>货物:</strong> {marker.fields?.barang} ({marker.fields?.jumlah})</div>
-                      <div><strong>重量:</strong> {marker.fields?.berat}</div>
-                      <div><strong>状态:</strong> {marker.gudangOut === '✅' ? '已出库' : '待出库'}</div>
+                      <div>🏪 {marker.outlet_name}</div>
+                      <div>👜 {marker.kantong}</div>
+                      <div>📋 {marker.totalDUS} DUS</div>
                     </Popup>
                   </Marker>
                 );
@@ -908,13 +898,9 @@ function App() {
                     {isExcluded && (
                       <div className="excluded-label">已出库 ✅</div>
                     )}
-                    <div><strong>店铺:</strong> {marker.outlet_name}</div>
-                    <div><strong>编码:</strong> {marker.shop_code}</div>
-                    <div><strong>电话:</strong> {marker.phoneNumber}</div>
-                    <div><strong>地址:</strong> {marker.fields?.alamat}</div>
-                    <div><strong>货物:</strong> {marker.fields?.barang} ({marker.fields?.jumlah})</div>
-                    <div><strong>重量:</strong> {marker.fields?.berat}</div>
-                    <div><strong>状态:</strong> {marker.gudangOut === '✅' ? '已出库' : '待出库'}</div>
+                    <div>🏪 {marker.outlet_name}</div>
+                    <div>👜 {marker.kantong}</div>
+                    <div>📋 {marker.totalDUS} DUS</div>
                   </Popup>
                 </Marker>
               );
