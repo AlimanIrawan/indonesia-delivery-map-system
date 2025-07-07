@@ -677,37 +677,40 @@ function App() {
           </div>
         )}
 
-        {/* 路线优化控制面板 */}
-        <RouteOptimizationPanel
-          onCalculateRoutes={handleCalculateRoutes}
-          isCalculating={isCalculatingRoutes}
-          routeData={routeData}
-          onClearRoutes={handleClearRoutes}
-        />
-
-        {/* 订单信息面板 */}
-        <div className="info-panel">
-          <div className="info-content">
-            <h3>📊 订单统计</h3>
-            <div className="info-stats">
-              <div className="stat-item">
-                <span className="stat-label">总订单数</span>
-                <span className="stat-value">{markers.length}</span>
+        {/* 左侧面板容器 */}
+        <div className="left-panels">
+          {/* 订单信息面板 */}
+          <div className="info-panel">
+            <div className="info-content">
+              <h3>📊 订单统计</h3>
+              <div className="info-stats">
+                <div className="stat-item">
+                  <span className="stat-label">总订单数</span>
+                  <span className="stat-value">{markers.length}</span>
+                </div>
+                {routeData && (
+                  <>
+                    <div className="stat-item">
+                      <span className="stat-label">参与计算</span>
+                      <span className="stat-value">{routeData.active_orders}</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">已出库</span>
+                      <span className="stat-value">{routeData.excluded_orders}</span>
+                    </div>
+                  </>
+                )}
               </div>
-              {routeData && (
-                <>
-                  <div className="stat-item">
-                    <span className="stat-label">参与计算</span>
-                    <span className="stat-value">{routeData.active_orders}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">已出库</span>
-                    <span className="stat-value">{routeData.excluded_orders}</span>
-                  </div>
-                </>
-              )}
             </div>
           </div>
+
+          {/* 路线优化控制面板 */}
+          <RouteOptimizationPanel
+            onCalculateRoutes={handleCalculateRoutes}
+            isCalculating={isCalculatingRoutes}
+            routeData={routeData}
+            onClearRoutes={handleClearRoutes}
+          />
         </div>
 
         {/* 更新按钮和状态 */}
@@ -833,8 +836,8 @@ const parseCSV = (csvText: string): MarkerData[] => {
     const values = lines[i].split(',');
     if (values.length !== headers.length) continue;
 
-    const latitude = parseFloat(values[2]);
-    const longitude = parseFloat(values[1]);
+    const latitude = parseFloat(values[1]);    // 修复：values[1] 是 latitude
+    const longitude = parseFloat(values[2]);   // 修复：values[2] 是 longitude
     
     if (isNaN(latitude) || isNaN(longitude)) continue;
 
