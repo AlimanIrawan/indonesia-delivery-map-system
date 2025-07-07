@@ -481,6 +481,52 @@ app.post('/debug-sync', async (req, res) => {
   }
 });
 
+// 显示所有字段名称的调试端点
+app.get('/debug-all-fields', async (req, res) => {
+  try {
+    const token = await getFeishuAccessToken();
+    
+    console.log('🔍 获取字段列表...');
+    
+    // 获取第一条记录查看所有字段
+    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records`;
+    const response = await axios.get(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      params: { page_size: 1 }
+    });
+
+    if (response.data.code === 0) {
+      const records = response.data.data.items || [];
+      if (records.length > 0) {
+        const firstRecord = records[0];
+        const fieldNames = Object.keys(firstRecord.fields);
+        
+        console.log('📋 所有可用字段名称:');
+        fieldNames.forEach((fieldName, index) => {
+          console.log(`  ${index + 1}. "${fieldName}" = "${firstRecord.fields[fieldName]}"`);
+        });
+        
+        res.json({
+          success: true,
+          totalFields: fieldNames.length,
+          fieldNames: fieldNames,
+          sampleRecord: firstRecord.fields
+        });
+      } else {
+        res.json({ success: false, message: '没有找到记录' });
+      }
+    } else {
+      res.json({ success: false, message: '获取数据失败', error: response.data });
+    }
+  } catch (error) {
+    console.error('❌ 获取字段列表失败:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 服务信息端点
 app.get('/', (req, res) => {
   const now = new Date();
