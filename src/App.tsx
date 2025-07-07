@@ -184,7 +184,7 @@ const RouteOptimizationPanel: React.FC<{
         <div className="route-summary">
           <div className="summary-stats">
             <div className="stat-row">
-              <span>📦</span>
+              <span>🔴</span>
               <span>{routeData.active_orders}</span>
             </div>
             <div className="stat-row">
@@ -556,6 +556,27 @@ function App() {
     try {
       console.log('🚀 开始计算路线优化...');
       
+      // 先自动刷新数据，确保使用最新的订单信息
+      console.log('🔄 自动刷新数据以获取最新订单...');
+      try {
+        const syncResponse = await fetch('https://feishu-delivery-sync.onrender.com/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (syncResponse.ok) {
+          // 等待数据同步完成
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          // 重新加载地图数据
+          await loadData();
+          console.log('✅ 数据自动刷新完成');
+        }
+      } catch (syncError) {
+        console.warn('⚠️ 数据同步失败，使用现有数据计算路线:', syncError);
+      }
+      
       const response = await fetch('https://feishu-delivery-sync.onrender.com/api/calculate-routes', {
         method: 'POST',
         headers: {
@@ -713,7 +734,7 @@ function App() {
               <h3>📊 统计</h3>
               <div className="info-stats">
                 <div className="stat-item">
-                  <span className="stat-label">📦</span>
+                  <span className="stat-label">🏪</span>
                   <span className="stat-value">{markers.length}</span>
                 </div>
                 <div className="stat-item">
@@ -725,7 +746,7 @@ function App() {
                   <span className="stat-value">{markers.filter(m => m.gudangOut === '✅').length}</span>
                 </div>
                 <div className="stat-item">
-                  <span className="stat-label">📋</span>
+                  <span className="stat-label">📦</span>
                   <span className="stat-value">{markers.reduce((sum, m) => sum + (parseInt(m.totalDUS) || 0), 0)}</span>
                 </div>
               </div>
@@ -880,8 +901,8 @@ function App() {
                         <strong>批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
                       </div>
                       <div>🏪 {marker.outlet_name}</div>
-                      <div>👜 {marker.kantong}</div>
-                      <div>📋 {marker.totalDUS} DUS</div>
+                      <div>✉️ {marker.kantong}</div>
+                      <div>📦 {marker.totalDUS} DUS</div>
                     </Popup>
                   </Marker>
                 );
@@ -899,8 +920,8 @@ function App() {
                       <div className="excluded-label">已出库 ✅</div>
                     )}
                     <div>🏪 {marker.outlet_name}</div>
-                    <div>👜 {marker.kantong}</div>
-                    <div>📋 {marker.totalDUS} DUS</div>
+                    <div>✉️ {marker.kantong}</div>
+                    <div>📦 {marker.totalDUS} DUS</div>
                   </Popup>
                 </Marker>
               );
