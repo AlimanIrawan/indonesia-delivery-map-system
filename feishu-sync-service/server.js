@@ -195,12 +195,29 @@ async function getFeishuData() {
       const orderType = getFieldText(fields['Order Type']);
       const totalDUS = getFieldText(fields['Total DUS']);
       
+      // 提取最终价格 - 优先使用Final Price IDR字段
+      let finalPrice = '';
+      if (fields['Final Price IDR']) {
+        if (typeof fields['Final Price IDR'] === 'number') {
+          finalPrice = fields['Final Price IDR'].toString();
+        } else {
+          finalPrice = getFieldText(fields['Final Price IDR']);
+        }
+      } else if (fields['Price-Auto']) {
+        if (typeof fields['Price-Auto'] === 'number') {
+          finalPrice = fields['Price-Auto'].toString();
+        } else {
+          finalPrice = getFieldText(fields['Price-Auto']);
+        }
+      }
+      
       // 详细调试输出
       console.log(`🔍 记录详情: ${outletCode}`);
       console.log(`  - 经纬度: lat=${latitude}, lng=${longitude}`);
       console.log(`  - 店主: ${namaPemilik}`);
       console.log(`  - 电话: ${noTelepon}`);
       console.log(`  - Kantong: ${kantong}, Order Type: ${orderType}, Total DUS: ${totalDUS}`);
+      console.log(`  - 最终价格: ${finalPrice} IDR`);
       
       // 如果经纬度无效，跳过此记录
       if (latitude === 0 || longitude === 0) {
@@ -217,7 +234,7 @@ async function getFeishuData() {
         kantong: kantong || '',
         orderType: orderType || '',
         totalDUS: totalDUS || '',
-        finalPrice: ''
+        finalPrice: finalPrice || ''
       };
     }).filter(record => record !== null); // 过滤掉无效记录
 
