@@ -248,6 +248,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentLayer, setCurrentLayer] = useState<MapLayerType>('street');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [lastManualUpdate, setLastManualUpdate] = useState(0);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
 
   const parseCSV = (csvText: string): MarkerData[] => {
     const lines = csvText.trim().split('\n');
@@ -302,6 +305,58 @@ function App() {
       setLoading(false);
     }
   }, []);
+
+  // 手动刷新数据
+  const handleManualUpdate = async () => {
+    const now = Date.now();
+    const cooldownTime = 60000; // 1分钟冷却时间
+
+    // 检查冷却时间
+    if (now - lastManualUpdate < cooldownTime) {
+      const remainingTime = Math.ceil((cooldownTime - (now - lastManualUpdate)) / 1000);
+      setUpdateMessage(`请等待 ${remainingTime} 秒后再次刷新`);
+      setTimeout(() => setUpdateMessage(null), 3000);
+      return;
+    }
+
+    setIsUpdating(true);
+    setUpdateMessage(null);
+
+    try {
+      // 1. 调用后端API触发飞书数据同步
+      console.log('🔄 开始手动同步飞书数据...');
+      const syncResponse = await fetch('https://feishu-delivery-sync.onrender.com/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!syncResponse.ok) {
+        throw new Error(`同步API调用失败: ${syncResponse.status}`);
+      }
+
+      // 2. 等待GitHub更新（给一些时间让文件更新）
+      console.log('⏳ 等待数据同步完成...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // 3. 重新加载CSV数据
+      console.log('📥 重新加载地图数据...');
+      await loadData();
+
+      // 4. 更新状态
+      setLastManualUpdate(now);
+      setUpdateMessage('✅ 数据更新成功！');
+      setTimeout(() => setUpdateMessage(null), 5000);
+
+    } catch (error) {
+      console.error('手动更新失败:', error);
+      setUpdateMessage('❌ 更新失败，请稍后重试');
+      setTimeout(() => setUpdateMessage(null), 5000);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // 页面加载时获取数据
   useEffect(() => {
@@ -390,13 +445,16 @@ function App() {
         <InfoPanel 
           markers={markers}
           currentView={currentLayerConfig.name}
+          isUpdating={isUpdating}
+          onManualUpdate={handleManualUpdate}
+          updateMessage={updateMessage}
         />
       </div>
     </div>
   );
 }
 
-const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string }> = ({ markers, currentView }) => (
+const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string; isUpdating: boolean; onManualUpdate: () => Promise<void>; updateMessage: string | null }> = ({ markers, currentView, isUpdating, onManualUpdate, updateMessage }) => (
   <div className="info-panel">
     <div className="info-content">
       <h3>📊 今日送货信息</h3>
@@ -424,6 +482,24 @@ const InfoPanel: React.FC<{ markers: MarkerData[]; currentView: string }> = ({ m
           <p>系统会自动同步最新的送货数据</p>
         </div>
       )}
+      <div className="update-controls">
+        <button
+          onClick={onManualUpdate}
+          disabled={isUpdating}
+          className={`btn btn-primary ${isUpdating ? 'updating' : ''}`}
+        >
+          {isUpdating ? '正在更新...' : '手动刷新数据'}
+        </button>
+        {updateMessage && (
+          <div className={`update-message ${
+            updateMessage.includes('✅') ? 'success' :
+            updateMessage.includes('❌') ? 'error' : 
+            updateMessage.includes('请等待') ? 'warning' : ''
+          }`}>
+            {updateMessage}
+          </div>
+        )}
+      </div>
     </div>
   </div>
 );
