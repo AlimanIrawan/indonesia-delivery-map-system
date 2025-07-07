@@ -208,7 +208,7 @@ const RouteOptimizationPanel: React.FC<{
                   className="color-indicator" 
                   style={{ backgroundColor: ROUTE_COLORS[index % ROUTE_COLORS.length] }}
                 ></div>
-                <span>批次{batch.batch_number}</span>
+                <span>{batch.capacity_used}📦</span>
               </div>
             ))}
           </div>
