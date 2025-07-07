@@ -50,6 +50,7 @@ interface MarkerData {
   orderType: string;
   totalDUS: string;
   finalPrice: string;
+  gudangOut?: string;  // 新增：Gudang OUT状态
   fields?: any;
 }
 
@@ -688,18 +689,18 @@ function App() {
                   <span className="stat-label">总订单数</span>
                   <span className="stat-value">{markers.length}</span>
                 </div>
-                {routeData && (
-                  <>
-                    <div className="stat-item">
-                      <span className="stat-label">参与计算</span>
-                      <span className="stat-value">{routeData.active_orders}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">已出库</span>
-                      <span className="stat-value">{routeData.excluded_orders}</span>
-                    </div>
-                  </>
-                )}
+                <div className="stat-item">
+                  <span className="stat-label">待出库</span>
+                  <span className="stat-value">{markers.filter(m => m.gudangOut !== '✅').length}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">已出库</span>
+                  <span className="stat-value">{markers.filter(m => m.gudangOut === '✅').length}</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">总货物</span>
+                  <span className="stat-value">{markers.reduce((sum, m) => sum + (parseInt(m.totalDUS) || 0), 0)} DUS</span>
+                </div>
               </div>
             </div>
           </div>
@@ -762,62 +763,44 @@ function App() {
           {/* 路线叠加层 */}
           <RouteOverlay routeData={routeData} />
           
-          {/* 普通订单标记（红色） */}
-          {markers.map((marker, index) => (
-            <CircleMarker
-              key={`${marker.shop_code}-${index}`}
-              center={[marker.latitude, marker.longitude]}
-              radius={12}
-              pathOptions={{
-                fillColor: MARKER_COLOR,
-                fillOpacity: 0.9,
-                color: '#fff',
-                weight: 3,
-                opacity: 1
-              }}
-            >
-              <Popup>
-                <div className="popup-content">
-                  <h3>🏪 {marker.outlet_name}</h3>
-                  <div className="delivery-info">
-                    <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
-                    <p><strong>📋</strong> {marker.orderType || '-'}</p>
-                    <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
-                    <p><strong>📞</strong> {marker.phoneNumber || '-'}</p>
+          {/* 订单标记 - 根据Gudang OUT状态分类显示 */}
+          {markers.map((marker, index) => {
+            const isExcluded = marker.gudangOut === '✅';
+            
+            return (
+              <CircleMarker
+                key={`${marker.shop_code}-${index}`}
+                center={[marker.latitude, marker.longitude]}
+                radius={isExcluded ? 8 : 12}
+                pathOptions={{
+                  fillColor: isExcluded ? EXCLUDED_MARKER_COLOR : MARKER_COLOR,
+                  fillOpacity: isExcluded ? 0.6 : 0.9,
+                  color: isExcluded ? '#666' : '#fff',
+                  weight: isExcluded ? 2 : 3,
+                  opacity: isExcluded ? 0.8 : 1,
+                  dashArray: isExcluded ? '3, 3' : undefined
+                }}
+              >
+                <Popup>
+                  <div className="popup-content">
+                    <h3>🏪 {marker.outlet_name}</h3>
+                    {isExcluded && <p className="excluded-label">✅ 已出库</p>}
+                    <div className="delivery-info">
+                      <p><strong>🏪</strong> {marker.shop_code}</p>
+                      <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
+                      <p><strong>📋</strong> {marker.orderType || '-'}</p>
+                      <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
+                      <p><strong>📞</strong> {marker.phoneNumber || '-'}</p>
+                      <p><strong>💰</strong> {marker.finalPrice || '-'} IDR</p>
+                      <p><strong>📦</strong> 状态: {isExcluded ? '已出库 ✅' : '待出库 🔄'}</p>
+                    </div>
                   </div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
+                </Popup>
+              </CircleMarker>
+            );
+          })}
 
-          {/* 已出库订单标记（灰色） */}
-          {getExcludedMarkers().map((marker, index) => (
-            <CircleMarker
-              key={`excluded-${marker.shop_code}-${index}`}
-              center={[marker.latitude, marker.longitude]}
-              radius={8}
-              pathOptions={{
-                fillColor: EXCLUDED_MARKER_COLOR,
-                fillOpacity: 0.6,
-                color: '#666',
-                weight: 2,
-                opacity: 0.8,
-                dashArray: '3, 3'
-              }}
-            >
-              <Popup>
-                <div className="popup-content">
-                  <h3>📦 {marker.outlet_name}</h3>
-                  <p className="excluded-label">✅ 已出库</p>
-                  <div className="delivery-info">
-                    <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
-                    <p><strong>📋</strong> {marker.orderType || '-'}</p>
-                    <p><strong>📦</strong> {marker.totalDUS || '-'} DUS</p>
-                  </div>
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
+          {/* 移除原来分开的已出库订单标记，因为现在统一处理了 */}
         </MapContainer>
       </div>
     </div>
@@ -834,10 +817,10 @@ const parseCSV = (csvText: string): MarkerData[] => {
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',');
-    if (values.length !== headers.length) continue;
+    if (values.length < headers.length) continue; // 允许字段数量差异
 
-    const latitude = parseFloat(values[1]);    // 修复：values[1] 是 latitude
-    const longitude = parseFloat(values[2]);   // 修复：values[2] 是 longitude
+    const latitude = parseFloat(values[1]);    // values[1] 是 latitude
+    const longitude = parseFloat(values[2]);   // values[2] 是 longitude
     
     if (isNaN(latitude) || isNaN(longitude)) continue;
 
@@ -850,7 +833,8 @@ const parseCSV = (csvText: string): MarkerData[] => {
       kantong: values[5]?.replace(/"/g, '') || '',
       orderType: values[6]?.replace(/"/g, '') || '',
       totalDUS: values[7]?.replace(/"/g, '') || '',
-      finalPrice: values[8]?.replace(/"/g, '') || ''
+      finalPrice: values[8]?.replace(/"/g, '') || '',
+      gudangOut: values[9]?.replace(/"/g, '') || ''  // 新增：Gudang OUT状态
     });
   }
 

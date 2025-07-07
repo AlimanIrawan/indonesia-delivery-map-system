@@ -286,10 +286,11 @@ async function getFeishuData() {
 
 // 生成CSV内容
 function generateCSV(data) {
-  const headers = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice';
-  const rows = data.map(item => 
-    `${item.shop_code},${item.latitude},${item.longitude},"${item.outlet_name}","${item.phoneNumber}","${item.kantong}","${item.orderType}","${item.totalDUS}","${item.finalPrice}"`
-  );
+  const headers = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut';
+  const rows = data.map(item => {
+    const gudangOutStatus = item.fields && item.fields['Gudang OUT'] ? item.fields['Gudang OUT'] : '';
+    return `${item.shop_code},${item.latitude},${item.longitude},"${item.outlet_name}","${item.phoneNumber}","${item.kantong}","${item.orderType}","${item.totalDUS}","${item.finalPrice}","${gudangOutStatus}"`;
+  });
   return [headers, ...rows].join('\n');
 }
 
@@ -343,7 +344,7 @@ async function syncData() {
     
     if (data.length === 0) {
       console.log('📝 今天没有送货数据，清空地图标记');
-      const emptyCSV = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice';
+      const emptyCSV = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut';
       await updateGitHubCSV(emptyCSV);
     } else {
       // 生成CSV
