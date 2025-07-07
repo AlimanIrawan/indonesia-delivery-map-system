@@ -236,7 +236,7 @@ const RouteOverlay: React.FC<{
 
   return (
     <>
-      {/* 渲染路线 */}
+      {/* 渲染每个批次的路线 */}
       {routeData.optimization_result.batches.map((batch, batchIndex) => {
         const color = ROUTE_COLORS[batchIndex % ROUTE_COLORS.length];
         
@@ -251,15 +251,14 @@ const RouteOverlay: React.FC<{
 
         return (
           <React.Fragment key={`route-${batch.batch_number}`}>
-            {/* 路线线条 */}
+            {/* 路线线条 - 简单的polyline */}
             <Polyline
               positions={routePath}
               pathOptions={{
                 color: color,
-                weight: 5,
+                weight: 4,
                 opacity: 0.8,
-                lineCap: 'round',
-                lineJoin: 'round'
+                dashArray: '10, 10'
               }}
             >
               <Popup>
@@ -270,7 +269,6 @@ const RouteOverlay: React.FC<{
                     <p><strong>⏱️ 时间:</strong> {batch.total_duration.toFixed(0)} 分钟</p>
                     <p><strong>📦 货物:</strong> {batch.capacity_used} DUS</p>
                     <p><strong>🏪 站点:</strong> {batch.route.length} 个</p>
-                    <p><strong>🛣️ 路线:</strong> 优化路径</p>
                   </div>
                   <div className="route-sequence">
                     <h5>📋 访问顺序:</h5>
@@ -287,53 +285,6 @@ const RouteOverlay: React.FC<{
                 </div>
               </Popup>
             </Polyline>
-
-            {/* 为每个订单点添加数字标注 */}
-            {batch.route.map((order, orderIndex) => (
-              <CircleMarker
-                key={`order-label-${batch.batch_number}-${orderIndex}`}
-                center={[order.lat, order.lng]}
-                radius={18}
-                pathOptions={{
-                  fillColor: 'white',
-                  fillOpacity: 0.95,
-                  color: color,
-                  weight: 3,
-                  opacity: 1
-                }}
-              >
-                <Popup>
-                  <div className="order-sequence-popup">
-                    <h4>📍 第 {orderIndex + 1} 站</h4>
-                    <div className="order-details">
-                      <p><strong>🏪 店铺:</strong> {order.name}</p>
-                      <p><strong>📱 电话:</strong> {order.phone}</p>
-                      <p><strong>📦 货物:</strong> {order.dus_count} DUS</p>
-                      <p><strong>🚛 批次:</strong> {batch.batch_number}</p>
-                      <p><strong>📍 地址:</strong> {order.address}</p>
-                    </div>
-                  </div>
-                </Popup>
-                {/* 数字标注文本 */}
-                <div 
-                  className="order-number-label" 
-                  style={{ 
-                    color: color,
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    fontWeight: 700,
-                    fontSize: '16px',
-                    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-                    pointerEvents: 'none',
-                    zIndex: 1000
-                  }}
-                >
-                  {orderIndex + 1}
-                </div>
-              </CircleMarker>
-            ))}
           </React.Fragment>
         );
       })}
@@ -825,16 +776,39 @@ function App() {
           {markers.map((marker, index) => {
             const isExcluded = marker.gudangOut === '✅';
             
+            // 查找该订单在路线中的位置和批次
+            let routeInfo: { batchNumber: number; orderIndex: number; batchColor: string } | null = null;
+            
+            if (routeData && routeData.success && routeData.optimization_result && !isExcluded) {
+              for (let batchIndex = 0; batchIndex < routeData.optimization_result.batches.length; batchIndex++) {
+                const batch = routeData.optimization_result.batches[batchIndex];
+                for (let orderIndex = 0; orderIndex < batch.route.length; orderIndex++) {
+                  const routeOrder = batch.route[orderIndex];
+                  // 通过坐标匹配订单（允许小数点误差）
+                  if (Math.abs(routeOrder.lat - marker.latitude) < 0.001 && 
+                      Math.abs(routeOrder.lng - marker.longitude) < 0.001) {
+                    routeInfo = {
+                      batchNumber: batch.batch_number,
+                      orderIndex: orderIndex + 1, // +1 因为要显示人类可读的序号
+                      batchColor: ROUTE_COLORS[batchIndex % ROUTE_COLORS.length]
+                    };
+                    break;
+                  }
+                }
+                if (routeInfo) break;
+              }
+            }
+            
             return (
               <CircleMarker
                 key={`${marker.shop_code}-${index}`}
                 center={[marker.latitude, marker.longitude]}
-                radius={isExcluded ? 8 : 12}
+                radius={isExcluded ? 8 : (routeInfo ? 15 : 12)}
                 pathOptions={{
                   fillColor: isExcluded ? EXCLUDED_MARKER_COLOR : MARKER_COLOR,
                   fillOpacity: isExcluded ? 0.6 : 0.9,
-                  color: isExcluded ? '#666' : '#fff',
-                  weight: isExcluded ? 2 : 3,
+                  color: routeInfo ? routeInfo.batchColor : (isExcluded ? '#666' : '#fff'),
+                  weight: routeInfo ? 4 : (isExcluded ? 2 : 3),
                   opacity: isExcluded ? 0.8 : 1,
                   dashArray: isExcluded ? '3, 3' : undefined
                 }}
@@ -843,6 +817,11 @@ function App() {
                   <div className="popup-content">
                     <h3>🏪 {marker.outlet_name}</h3>
                     {isExcluded && <p className="excluded-label">✅ 已出库</p>}
+                    {routeInfo && (
+                      <p className="route-info">
+                        <strong>🚛 批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
+                      </p>
+                    )}
                     <div className="delivery-info">
                       <p><strong>🏪</strong> {marker.shop_code}</p>
                       <p><strong>🏷️</strong> {marker.kantong || '-'}</p>
@@ -854,6 +833,26 @@ function App() {
                     </div>
                   </div>
                 </Popup>
+                
+                {/* 在标记上显示顺序数字 */}
+                {routeInfo && (
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
+                      pointerEvents: 'none',
+                      zIndex: 1000
+                    }}
+                  >
+                    {routeInfo.orderIndex}
+                  </div>
+                )}
               </CircleMarker>
             );
           })}

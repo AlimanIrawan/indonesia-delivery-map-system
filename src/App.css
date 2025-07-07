@@ -820,6 +820,23 @@
   text-align: center;
 }
 
+/* 路线信息样式 */
+.route-info {
+  color: #007bff !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  margin-bottom: 8px !important;
+  padding: 6px 8px;
+  background: #e7f3ff;
+  border-radius: 4px;
+  text-align: center;
+  border-left: 3px solid #007bff;
+}
+
+.route-info strong {
+  color: #007bff !important;
+}
+
 /* 路线优化面板响应式设计 */
 @media (max-width: 768px) {
   .route-optimization-panel {
