@@ -166,9 +166,18 @@ async function getFeishuData() {
 
   } catch (error) {
     console.error('❌ 获取飞书数据失败:', error.message);
+    
+    // 输出详细的错误信息
     if (error.response) {
-      console.error('响应数据:', error.response.data);
+      console.error('📄 错误状态码:', error.response.status);
+      console.error('📄 错误响应头:', JSON.stringify(error.response.headers, null, 2));
+      console.error('📄 错误响应数据:', JSON.stringify(error.response.data, null, 2));
+    } else if (error.request) {
+      console.error('📄 请求错误:', error.request);
+    } else {
+      console.error('📄 其他错误:', error.message);
     }
+    
     throw error;
   }
 }
