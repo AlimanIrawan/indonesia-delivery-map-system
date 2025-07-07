@@ -165,41 +165,59 @@ async function getFeishuData() {
     const csvData = todayRecords.map(record => {
       const fields = record.fields;
       
-      // 详细调试输出每条记录的字段信息
-      console.log(`🔍 记录详情: ${fields['Outlet Code']}`);
-      console.log(`  - 所有字段: ${Object.keys(fields).join(', ')}`);
-      console.log(`  - Outlet Code: "${fields['Outlet Code']}"`);
-      console.log(`  - latitude: "${fields['latitude']}" (类型: ${typeof fields['latitude']})`);
-      console.log(`  - longitude: "${fields['longitude']}" (类型: ${typeof fields['longitude']})`);
-      console.log(`  - Nama Pemilik: "${fields['Nama Pemilik']}"`);
-      console.log(`  - No Telepon Pemilik: "${fields['No Telepon Pemilik']}"`);
-      console.log(`  - Kantong: "${fields['Kantong']}"`);
-      console.log(`  - Order Type: "${fields['Order Type']}"`);
-      console.log(`  - Total DUS: "${fields['Total DUS']}"`);
-      console.log(`  - Final Price IDR: "${fields['Final Price IDR']}"`);
+      // 辅助函数：提取飞书字段的文本值
+      const getFieldText = (field) => {
+        if (!field) return '';
+        if (Array.isArray(field) && field.length > 0 && field[0].text) {
+          return field[0].text;
+        }
+        if (typeof field === 'string') return field;
+        if (typeof field === 'number') return field.toString();
+        return '';
+      };
       
-      // 确保经纬度是数字
-      const latitude = parseFloat(fields['latitude']) || 0;
-      const longitude = parseFloat(fields['longitude']) || 0;
+      // 辅助函数：提取电话号码
+      const getPhoneNumber = (field) => {
+        if (!field) return '';
+        if (Array.isArray(field) && field.length > 0 && field[0].fullPhoneNum) {
+          return field[0].fullPhoneNum;
+        }
+        return getFieldText(field);
+      };
       
-      console.log(`  - 解析后经纬度: lat=${latitude}, lng=${longitude}`);
+      // 提取所有字段的文本值
+      const outletCode = getFieldText(fields['Outlet Code']);
+      const latitude = parseFloat(getFieldText(fields['latitude']));
+      const longitude = parseFloat(getFieldText(fields['longitude']));
+      const namaPemilik = getFieldText(fields['Nama Pemilik']);
+      const noTelepon = getPhoneNumber(fields['No Telepon Pemilik']);
+      const kantong = getFieldText(fields['Kantong']);
+      const orderType = getFieldText(fields['Order Type']);
+      const totalDUS = getFieldText(fields['Total DUS']);
+      
+      // 详细调试输出
+      console.log(`🔍 记录详情: ${outletCode}`);
+      console.log(`  - 经纬度: lat=${latitude}, lng=${longitude}`);
+      console.log(`  - 店主: ${namaPemilik}`);
+      console.log(`  - 电话: ${noTelepon}`);
+      console.log(`  - Kantong: ${kantong}, Order Type: ${orderType}, Total DUS: ${totalDUS}`);
       
       // 如果经纬度无效，跳过此记录
       if (latitude === 0 || longitude === 0) {
-        console.log(`⚠️ 跳过无效坐标的记录: ${fields['Outlet Code']}`);
+        console.log(`⚠️ 跳过无效坐标的记录: ${outletCode}`);
         return null;
       }
 
       return {
-        shop_code: fields['Outlet Code'] || '',
+        shop_code: outletCode || '',
         latitude: latitude,
         longitude: longitude,
-        outlet_name: fields['Nama Pemilik'] || '',
-        phoneNumber: fields['No Telepon Pemilik'] || '',
-        kantong: fields['Kantong'] || '',
-        orderType: fields['Order Type'] || '',
-        totalDUS: fields['Total DUS'] || '',
-        finalPrice: fields['Final Price IDR'] || ''
+        outlet_name: namaPemilik || '',
+        phoneNumber: noTelepon || '',
+        kantong: kantong || '',
+        orderType: orderType || '',
+        totalDUS: totalDUS || '',
+        finalPrice: ''
       };
     }).filter(record => record !== null); // 过滤掉无效记录
 
