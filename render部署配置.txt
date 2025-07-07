@@ -1,0 +1,97 @@
+Render后端服务部署配置
+=====================
+
+🎯 部署目标: 从单一Git仓库的子目录部署Node.js同步服务
+
+📋 Render配置步骤
+===============
+
+1. 连接GitHub仓库
+---------------
+- 访问: https://render.com/
+- 点击 "New +"
+- 选择 "Web Service"
+- 连接你的GitHub仓库: indonesia-delivery-map-system
+- 选择分支: main
+
+2. 服务配置
+----------
+Service Settings:
+✅ Name: feishu-delivery-sync
+✅ Environment: Node
+✅ Region: Singapore (距离印尼最近)
+✅ Branch: main
+✅ Root Directory: feishu-sync-service  ⭐️ 关键配置
+✅ Build Command: npm install
+✅ Start Command: npm start
+
+3. 环境变量配置
+-------------
+在Environment Variables中添加:
+
+飞书多维表格配置:
+FEISHU_APP_ID=cli_xxxxxxxxxxxxxxxx
+FEISHU_APP_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+FEISHU_APP_TOKEN=bascnxxxxxxxxxxxxxxxxx
+FEISHU_TABLE_ID=tblxxxxxxxxxxxxxxxxx
+
+GitHub配置:
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GITHUB_REPO_OWNER=你的GitHub用户名
+GITHUB_REPO_NAME=indonesia-delivery-map-system
+
+服务配置:
+NODE_ENV=production
+PORT=3000
+
+4. 高级设置
+----------
+✅ Auto-Deploy: Yes (自动部署)
+✅ Health Check Path: /health
+✅ Plan: Free (免费计划)
+
+📁 关键配置说明
+=============
+🔑 Root Directory: feishu-sync-service
+这个设置告诉Render只部署子目录，而不是整个仓库根目录
+
+文件结构:
+indonesia-delivery-map-system/    ← GitHub仓库根目录
+├── src/                          ← Netlify部署这部分
+├── public/
+├── package.json                  ← 前端依赖
+└── feishu-sync-service/          ← Render部署这部分 ⭐️
+    ├── package.json              ← 后端依赖
+    ├── server.js
+    └── render.yaml
+
+🔄 部署流程
+==========
+每次推送到GitHub main分支时:
+1. Render检测到feishu-sync-service/目录变更
+2. 切换到子目录执行构建
+3. 运行npm install (安装后端依赖)
+4. 启动服务npm start
+5. 健康检查/health端点
+
+✅ 部署验证
+==========
+服务部署成功后访问:
+1. https://your-service.onrender.com/ (服务信息)
+2. https://your-service.onrender.com/health (健康检查)
+3. POST https://your-service.onrender.com/sync (手动同步)
+
+🔍 日志监控
+==========
+在Render控制台可以查看:
+- 部署日志
+- 运行时日志
+- 定时任务执行日志
+- 飞书API调用日志
+
+⚠️ 注意事项
+===========
+1. Root Directory设置为feishu-sync-service很关键
+2. 环境变量必须正确配置
+3. GitHub Token需要有repo权限
+4. 飞书应用需要正确的多维表格权限 
