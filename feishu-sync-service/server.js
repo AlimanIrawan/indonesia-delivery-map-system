@@ -270,6 +270,83 @@ app.post('/sync', async (req, res) => {
   }
 });
 
+// 调试同步端点 - 返回详细的执行过程
+app.post('/debug-sync', async (req, res) => {
+  const logs = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  
+  // 捕获所有日志输出
+  console.log = (...args) => {
+    const message = args.join(' ');
+    logs.push({ type: 'info', message, timestamp: new Date().toISOString() });
+    originalLog(...args);
+  };
+  
+  console.error = (...args) => {
+    const message = args.join(' ');
+    logs.push({ type: 'error', message, timestamp: new Date().toISOString() });
+    originalError(...args);
+  };
+  
+  try {
+    // 检查环境变量
+    logs.push({ 
+      type: 'info', 
+      message: `环境变量检查: FEISHU_APP_ID=${FEISHU_APP_ID ? '已设置' : '未设置'}`, 
+      timestamp: new Date().toISOString() 
+    });
+    logs.push({ 
+      type: 'info', 
+      message: `环境变量检查: FEISHU_APP_SECRET=${FEISHU_APP_SECRET ? '已设置' : '未设置'}`, 
+      timestamp: new Date().toISOString() 
+    });
+    logs.push({ 
+      type: 'info', 
+      message: `环境变量检查: FEISHU_APP_TOKEN=${FEISHU_APP_TOKEN ? '已设置' : '未设置'}`, 
+      timestamp: new Date().toISOString() 
+    });
+    logs.push({ 
+      type: 'info', 
+      message: `环境变量检查: FEISHU_TABLE_ID=${FEISHU_TABLE_ID ? '已设置' : '未设置'}`, 
+      timestamp: new Date().toISOString() 
+    });
+    logs.push({ 
+      type: 'info', 
+      message: `环境变量检查: GITHUB_TOKEN=${GITHUB_TOKEN ? '已设置' : '未设置'}`, 
+      timestamp: new Date().toISOString() 
+    });
+    
+    await syncData();
+    
+    // 恢复原始的日志函数
+    console.log = originalLog;
+    console.error = originalError;
+    
+    res.json({ 
+      success: true, 
+      message: '调试同步完成',
+      logs: logs
+    });
+  } catch (error) {
+    // 恢复原始的日志函数
+    console.log = originalLog;
+    console.error = originalError;
+    
+    logs.push({ 
+      type: 'error', 
+      message: `同步失败: ${error.message}`, 
+      timestamp: new Date().toISOString() 
+    });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      logs: logs
+    });
+  }
+});
+
 // 服务信息端点
 app.get('/', (req, res) => {
   const now = new Date();
