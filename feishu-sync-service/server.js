@@ -422,11 +422,14 @@ async function syncData() {
 
 // 健康检查端点
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    timezone: 'Asia/Jakarta'
-  });
+    res.json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        timezone: 'Asia/Jakarta',
+        version: '2.1.0', // 添加版本号来确认部署
+        git_commit: 'ef89401', // 添加Git提交ID
+        features: ['error_handling', 'diagnostics', 'route_optimization'] // 添加功能列表
+    });
 });
 
 // 手动同步端点
