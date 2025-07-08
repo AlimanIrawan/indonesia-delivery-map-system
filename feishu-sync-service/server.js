@@ -252,6 +252,7 @@ async function getFeishuData() {
         orderType: orderType || '',
         totalDUS: totalDUS || '',
         finalPrice: finalPrice || '',
+        gudangOut: gudangOut || '', // 直接添加gudangOut字段
         // 保留原始字段数据，特别是Gudang OUT状态，用于路线优化过滤
         fields: {
           'Gudang OUT': gudangOut,
@@ -288,7 +289,8 @@ async function getFeishuData() {
 function generateCSV(data) {
   const headers = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut';
   const rows = data.map(item => {
-    const gudangOutStatus = item.fields && item.fields['Gudang OUT'] ? item.fields['Gudang OUT'] : '';
+    // 直接从item对象获取gudangOut，而不是从fields对象
+    const gudangOutStatus = item.gudangOut || '';
     return `${item.shop_code},${item.latitude},${item.longitude},"${item.outlet_name}","${item.phoneNumber}","${item.kantong}","${item.orderType}","${item.totalDUS}","${item.finalPrice}","${gudangOutStatus}"`;
   });
   return [headers, ...rows].join('\n');
