@@ -640,12 +640,14 @@ app.post('/api/calculate-routes', async (req, res) => {
     
     // 过滤掉已出库的订单（Gudang OUT = ✅）
     const activeOrders = allOrders.filter(order => {
-      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
+      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
       return gudangOut !== '✅';
     });
 
     const excludedOrders = allOrders.filter(order => {
-      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
+      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
       return gudangOut === '✅';
     });
 
@@ -717,12 +719,14 @@ app.get('/api/order-status', async (req, res) => {
     
     // 分类统计
     const activeOrders = allOrders.filter(order => {
-      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
+      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
       return gudangOut !== '✅';
     });
 
     const excludedOrders = allOrders.filter(order => {
-      const gudangOut = order.fields ? order.fields['Gudang OUT'] : null;
+      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
+      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
       return gudangOut === '✅';
     });
 
