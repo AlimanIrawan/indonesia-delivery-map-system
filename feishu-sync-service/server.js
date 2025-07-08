@@ -51,9 +51,17 @@ async function getFeishuAccessToken() {
     }
 
     console.log('🔑 获取飞书访问令牌...');
+    
+    // 检查必要的环境变量
+    if (!FEISHU_APP_ID || !FEISHU_APP_SECRET) {
+      throw new Error('飞书API配置不完整：缺少APP_ID或APP_SECRET');
+    }
+
     const response = await axios.post('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
       app_id: FEISHU_APP_ID,
       app_secret: FEISHU_APP_SECRET
+    }, {
+      timeout: 10000 // 10秒超时
     });
 
     if (response.data.code === 0) {
@@ -62,11 +70,23 @@ async function getFeishuAccessToken() {
       console.log('✅ 飞书访问令牌获取成功');
       return accessToken;
     } else {
-      throw new Error(`获取访问令牌失败: ${response.data.msg}`);
+      throw new Error(`获取访问令牌失败 (code: ${response.data.code}): ${response.data.msg}`);
     }
   } catch (error) {
-    console.error('❌ 获取飞书访问令牌失败:', error.message);
-    throw error;
+    if (error.response) {
+      console.error('❌ 飞书API响应错误:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+      throw new Error(`飞书API错误 ${error.response.status}: ${error.response.statusText}`);
+    } else if (error.request) {
+      console.error('❌ 飞书API网络错误:', error.message);
+      throw new Error(`网络连接失败: ${error.message}`);
+    } else {
+      console.error('❌ 获取飞书访问令牌失败:', error.message);
+      throw error;
+    }
   }
 }
 
@@ -110,7 +130,8 @@ async function getFeishuData() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        params
+        params,
+        timeout: 15000 // 15秒超时
       });
 
       if (response.data.code === 0) {
@@ -122,7 +143,12 @@ async function getFeishuData() {
         
         console.log(`📦 已获取 ${records.length} 条记录`);
       } else {
-        throw new Error(`获取数据失败: ${response.data.msg}`);
+        console.error('❌ 飞书数据API错误:', {
+          code: response.data.code,
+          msg: response.data.msg,
+          url: url
+        });
+        throw new Error(`获取数据失败 (code: ${response.data.code}): ${response.data.msg}`);
       }
     }
 
@@ -301,6 +327,11 @@ async function updateGitHubCSV(csvContent) {
   try {
     console.log('📤 更新GitHub仓库中的CSV文件...');
     
+    // 检查必要的环境变量
+    if (!GITHUB_TOKEN || !GITHUB_REPO_OWNER || !GITHUB_REPO_NAME) {
+      throw new Error('GitHub配置不完整：缺少TOKEN、REPO_OWNER或REPO_NAME');
+    }
+    
     // 获取当前文件内容以获取SHA
     let sha = null;
     try {
@@ -311,15 +342,18 @@ async function updateGitHubCSV(csvContent) {
       });
       sha = currentFile.sha;
     } catch (error) {
-      // 如果文件不存在，sha保持为null
-      console.log('📝 文件不存在，将创建新文件');
+      if (error.status === 404) {
+        console.log('📝 文件不存在，将创建新文件');
+      } else {
+        console.warn('⚠️ 获取文件SHA失败:', error.message);
+      }
     }
 
     const today = getTodayDateString();
     const message = `🚚 更新送货数据 - ${today}`;
 
     // 更新或创建文件
-    await octokit.rest.repos.createOrUpdateFileContents({
+    const updateResult = await octokit.rest.repos.createOrUpdateFileContents({
       owner: GITHUB_REPO_OWNER,
       repo: GITHUB_REPO_NAME,
       path: 'public/markers.csv',
@@ -329,9 +363,30 @@ async function updateGitHubCSV(csvContent) {
     });
 
     console.log('✅ GitHub CSV文件更新成功');
+    console.log(`📄 文件大小: ${csvContent.length} 字符`);
+    return updateResult;
   } catch (error) {
-    console.error('❌ 更新GitHub CSV文件失败:', error.message);
-    throw error;
+    if (error.status === 403) {
+      console.error('❌ GitHub API权限错误 (403):', {
+        message: error.message,
+        documentation_url: error.response?.data?.documentation_url,
+        repo: `${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`
+      });
+      throw new Error(`GitHub权限不足：请检查Personal Access Token权限`);
+    } else if (error.status === 401) {
+      console.error('❌ GitHub API认证错误 (401):', error.message);
+      throw new Error(`GitHub认证失败：请检查Personal Access Token是否有效`);
+    } else if (error.status === 404) {
+      console.error('❌ GitHub仓库不存在 (404):', `${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`);
+      throw new Error(`GitHub仓库不存在或无权访问：${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}`);
+    } else {
+      console.error('❌ 更新GitHub CSV文件失败:', {
+        status: error.status,
+        message: error.message,
+        response: error.response?.data
+      });
+      throw new Error(`GitHub API错误 ${error.status || 'unknown'}: ${error.message}`);
+    }
   }
 }
 
@@ -829,10 +884,134 @@ app.post('/api/test-route-optimization', async (req, res) => {
 app.get('/api/config-status', (req, res) => {
   res.json({
     feishu_configured: !!(FEISHU_APP_ID && FEISHU_APP_SECRET && FEISHU_APP_TOKEN && FEISHU_TABLE_ID),
+    feishu_details: {
+      app_id_set: !!FEISHU_APP_ID,
+      app_secret_set: !!FEISHU_APP_SECRET,
+      app_token_set: !!FEISHU_APP_TOKEN,
+      table_id_set: !!FEISHU_TABLE_ID
+    },
     github_configured: !!(GITHUB_TOKEN && GITHUB_REPO_OWNER && GITHUB_REPO_NAME),
+    github_details: {
+      token_set: !!GITHUB_TOKEN,
+      repo_owner_set: !!GITHUB_REPO_OWNER,
+      repo_name_set: !!GITHUB_REPO_NAME,
+      repo_path: GITHUB_REPO_OWNER && GITHUB_REPO_NAME ? `${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}` : 'not_configured'
+    },
     google_maps_configured: !!GOOGLE_MAPS_API_KEY,
     route_optimizer_ready: !!routeOptimizer,
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    node_version: process.version,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 新增：API连接测试端点
+app.post('/api/test-connections', async (req, res) => {
+  const results = {
+    feishu: { status: 'not_tested', message: '', details: null },
+    github: { status: 'not_tested', message: '', details: null },
+    google_maps: { status: 'not_tested', message: '', details: null }
+  };
+
+  // 测试飞书API连接
+  try {
+    if (FEISHU_APP_ID && FEISHU_APP_SECRET) {
+      console.log('🧪 测试飞书API连接...');
+      const token = await getFeishuAccessToken();
+      results.feishu = {
+        status: 'success',
+        message: '飞书API连接成功',
+        details: { token_obtained: !!token }
+      };
+    } else {
+      results.feishu = {
+        status: 'failed',
+        message: '飞书API配置不完整',
+        details: null
+      };
+    }
+  } catch (error) {
+    results.feishu = {
+      status: 'failed',
+      message: error.message,
+      details: { error_type: error.constructor.name }
+    };
+  }
+
+  // 测试GitHub API连接
+  try {
+    if (GITHUB_TOKEN && GITHUB_REPO_OWNER && GITHUB_REPO_NAME) {
+      console.log('🧪 测试GitHub API连接...');
+      const { data: repo } = await octokit.rest.repos.get({
+        owner: GITHUB_REPO_OWNER,
+        repo: GITHUB_REPO_NAME
+      });
+      results.github = {
+        status: 'success',
+        message: 'GitHub API连接成功',
+        details: { 
+          repo_accessible: true,
+          repo_name: repo.full_name,
+          permissions: repo.permissions
+        }
+      };
+    } else {
+      results.github = {
+        status: 'failed',
+        message: 'GitHub API配置不完整',
+        details: null
+      };
+    }
+  } catch (error) {
+    results.github = {
+      status: 'failed',
+      message: `GitHub API错误 ${error.status || 'unknown'}: ${error.message}`,
+      details: { 
+        error_type: error.constructor.name,
+        status_code: error.status
+      }
+    };
+  }
+
+  // 测试Google Maps API（如果已配置）
+  try {
+    if (routeOptimizer && GOOGLE_MAPS_API_KEY) {
+      console.log('🧪 测试Google Maps API连接...');
+      // 简单的距离查询测试
+      const testResult = await routeOptimizer.getDistance(
+        { lat: -6.1, lng: 106.8 },
+        { lat: -6.2, lng: 106.9 }
+      );
+      results.google_maps = {
+        status: 'success',
+        message: 'Google Maps API连接成功',
+        details: { test_distance: testResult }
+      };
+    } else {
+      results.google_maps = {
+        status: 'skipped',
+        message: 'Google Maps API未配置或路线优化器未初始化',
+        details: null
+      };
+    }
+  } catch (error) {
+    results.google_maps = {
+      status: 'failed',
+      message: error.message,
+      details: { error_type: error.constructor.name }
+    };
+  }
+
+  res.json({
+    success: true,
+    test_results: results,
+    summary: {
+      total_tests: Object.keys(results).length,
+      passed: Object.values(results).filter(r => r.status === 'success').length,
+      failed: Object.values(results).filter(r => r.status === 'failed').length,
+      skipped: Object.values(results).filter(r => r.status === 'skipped').length
+    },
+    timestamp: new Date().toISOString()
   });
 });
 
