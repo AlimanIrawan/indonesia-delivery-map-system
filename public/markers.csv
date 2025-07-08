@@ -1,7 +1,12 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut
 250624152512,-6.101287416762497,106.93595789372921,"Bapak Moch Masir NP","081295124054","","First Order","17","1453320","[object Object]"
 250521131544,-6.111993044557606,106.89571101218462,"Ibu Halimatus Sahrah","081770233723","","Repeat Order","5","587120","[object Object]"
+250703103540,-6.108302622503574,106.93771842867136,"Bapak Hasan Basri","082210366507","U","First Order","17","1453320","[object Object]"
+250630144104,-6.11934547620563,106.958027780056,"Ibu Rosifah","08978807472","J","First Order","17","1453320","[object Object]"
 250514085339,-6.1121197252603405,106.90824329853058,"Bapak Sayuti","081292775507","","Repeat Order","8","785620","[object Object]"
 250507164722,-6.121554352942299,106.91119942814112,"Ibu Novianti","082111927408","","Repeat Order","4","348820","[object Object]"
 250612100118,-6.123907900055123,106.90912306308746,"Bapak Raudatul Ulum","087773257070","","Repeat Order","3","265300","[object Object]"
 250430134841,-6.112773797253624,106.89602985978127,"Bapak Komarudin","089508571357","","Repeat Order","3","313000","[object Object]"
+250616160134,-6.1328314,106.9063221,"Bapak Muhammad Soleh","082112537277","","Repeat Order","4","388100","[object Object]"
+250623161239,-6.108881023666791,106.93708643317223,"Bapak Supriadi","082122353201","","Repeat Order","8","674120","[object Object]"
+250609093529,-6.112831470229959,106.89552191644907,"Ibu Diah","0895359482647","","Repeat Order","3","263500","[object Object]"
