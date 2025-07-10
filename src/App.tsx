@@ -577,7 +577,7 @@ function App() {
         console.warn('⚠️ 数据同步失败，使用现有数据计算路线:', syncError);
       }
       
-      const response = await fetch('https://feishu-delivery-sync.onrender.com/api/calculate-routes', {
+      const response = await fetch('https://feishu-delivery-sync.onrender.com/api/optimize-routes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

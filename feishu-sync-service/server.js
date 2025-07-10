@@ -909,13 +909,28 @@ app.post('/api/optimize-routes', async (req, res) => {
       });
     }
     
+    // 过滤掉已出库的订单（Gudang OUT = ✅）
+    const activeOrders = feishuData.filter(order => {
+      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
+      return gudangOut !== '✅';
+    });
+    
+    console.log(`📦 总订单数: ${feishuData.length}`);
+    console.log(`🔄 参与路线计算: ${activeOrders.length} 个订单`);
+    console.log(`⚫ 已出库(跳过): ${feishuData.length - activeOrders.length} 个订单`);
+    
     // 转换数据格式
-    const orders = feishuData.map(item => ({
-      id: item[0] || 'unknown',
-      name: item[3] || 'unknown',
-      lat: parseFloat(item[1]),
-      lng: parseFloat(item[2]),
-      dus_count: parseInt(item[7]) || 1
+    const orders = activeOrders.map(item => ({
+      id: item.shop_code || 'unknown',
+      name: item.outlet_name || 'unknown',
+      lat: parseFloat(item.latitude),
+      lng: parseFloat(item.longitude),
+      dus_count: parseInt(item.totalDUS) || 1,
+      phone: item.phoneNumber || '',
+      address: item.outlet_name || '',
+      kantong: item.kantong || '',
+      orderType: item.orderType || '',
+      finalPrice: item.finalPrice || ''
     })).filter(order => 
       !isNaN(order.lat) && 
       !isNaN(order.lng) && 
@@ -942,15 +957,30 @@ app.post('/api/optimize-routes', async (req, res) => {
     
     console.log(`✅ 方案B优化完成，耗时: ${endTime - startTime}ms`);
     
-    res.json({
+    // 格式化响应以匹配前端期望的数据结构
+    const response = {
       success: true,
       algorithm: 'Method B - Enumerative Optimization',
       version: '2.2.0',
       optimization_time_ms: endTime - startTime,
-      input_orders: orders.length,
-      ...result,
-      timestamp: new Date().toISOString()
-    });
+      active_orders: orders.length,
+      excluded_orders: feishuData.length - activeOrders.length,
+      optimization_result: result.error ? null : {
+        batches: result.batches || [],
+        total_distance: result.total_distance || 0,
+        total_duration: result.total_duration || 0,
+        statistics: result.statistics || {}
+      },
+      excluded_points: feishuData.filter(order => {
+        const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
+        return gudangOut === '✅';
+      }),
+      calculation_time: new Date().toISOString(),
+      error: result.error || null,
+      api_usage: result.api_usage
+    };
+    
+    res.json(response);
     
   } catch (error) {
     console.error('❌ 方案B路线优化失败:', error);
