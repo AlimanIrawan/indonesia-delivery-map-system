@@ -134,6 +134,45 @@ interface OptimizationResult {
 // const MARKER_COLOR = '#FF0000';  // 鲜艳的红色
 // const EXCLUDED_MARKER_COLOR = '#999999';  // 灰色（已出库）
 
+// Polyline解码函数
+const decodePolyline = (encoded: string): [number, number][] => {
+  const poly: [number, number][] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < encoded.length) {
+    let shift = 0;
+    let result = 0;
+    let byte;
+
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    const deltaLat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+    lat += deltaLat;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    const deltaLng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+    lng += deltaLng;
+
+    poly.push([lat / 1e5, lng / 1e5]);
+  }
+
+  return poly;
+};
+
 // 路线颜色配置
 const ROUTE_COLORS = [
   '#FF0000', // 红色
@@ -283,17 +322,31 @@ const RouteOverlay: React.FC<{
           return (
             <React.Fragment key={`routes-api-${batch.batch_number}`}>
               {batch.route_polylines!.map((segment, segmentIndex) => {
-                // 如果有polyline数据，解码并显示真实路线
-                if (segment.polyline) {
-                  // 这里需要polyline解码函数，但先显示备用方案
-                  console.log(`🗺️ 批次${batch.batch_number}段${segmentIndex + 1}: 真实路线数据可用`);
-                }
+                // 根据是否有polyline数据选择路径
+                let segmentPath: [number, number][];
+                let isRealRoute = false;
                 
-                // 备用方案：使用起点和终点坐标
-                const segmentPath: [number, number][] = [
-                  [segment.from_coords.lat, segment.from_coords.lng],
-                  [segment.to_coords.lat, segment.to_coords.lng]
-                ];
+                if (segment.polyline) {
+                  // 解码真实路线数据
+                  try {
+                    segmentPath = decodePolyline(segment.polyline);
+                    isRealRoute = true;
+                    console.log(`🗺️ 批次${batch.batch_number}段${segmentIndex + 1}: 使用Routes API真实路线 (${segmentPath.length}个点)`);
+                  } catch (error) {
+                    console.warn(`⚠️ Polyline解码失败，使用备用方案:`, error);
+                    // 备用方案：使用起点和终点坐标
+                    segmentPath = [
+                      [segment.from_coords.lat, segment.from_coords.lng],
+                      [segment.to_coords.lat, segment.to_coords.lng]
+                    ];
+                  }
+                } else {
+                  // 备用方案：使用起点和终点坐标
+                  segmentPath = [
+                    [segment.from_coords.lat, segment.from_coords.lng],
+                    [segment.to_coords.lat, segment.to_coords.lng]
+                  ];
+                }
 
                 return (
                   <Polyline
@@ -301,10 +354,10 @@ const RouteOverlay: React.FC<{
                     positions={segmentPath}
                     pathOptions={{
                       color: color,
-                      weight: 5,
-                      opacity: 0.9,
-                      // 移除虚线，显示实线表示真实路线
-                      dashArray: segment.polyline ? undefined : '5, 5'
+                      weight: isRealRoute ? 6 : 4,
+                      opacity: isRealRoute ? 0.9 : 0.7,
+                      // 真实路线显示实线，估算路线显示虚线
+                      dashArray: isRealRoute ? undefined : '8, 8'
                     }}
                   >
                     <Popup>
@@ -315,7 +368,8 @@ const RouteOverlay: React.FC<{
                           <p><strong>📍 终点:</strong> {segment.to === 'headquarters' ? '🏢 总部' : `🏪 ${segment.to}`}</p>
                           <p><strong>📏 距离:</strong> {segment.distance.toFixed(1)} km</p>
                           <p><strong>⏱️ 时间:</strong> {segment.duration.toFixed(0)} 分钟</p>
-                          <p><strong>🗺️ 数据源:</strong> {segment.polyline ? 'Routes API真实路线' : '直线估算'}</p>
+                          <p><strong>🗺️ 数据源:</strong> {isRealRoute ? 'Routes API真实路线' : '直线估算'}</p>
+                          {isRealRoute && <p><strong>🎯 路径点数:</strong> {segmentPath.length} 个</p>}
                         </div>
                       </div>
                     </Popup>
@@ -922,11 +976,11 @@ function App() {
           <HeadquartersMarker />
           
           <LocationMarker />
-          
-          <LayerControl 
-            currentLayer={currentLayer} 
-            onLayerChange={handleLayerChange} 
-          />
+
+        <LayerControl 
+          currentLayer={currentLayer}
+          onLayerChange={handleLayerChange}
+        />
 
           {/* 路线叠加层 */}
           <RouteOverlay routeData={routeData} />
@@ -1004,7 +1058,7 @@ function App() {
                       position: relative;
                     ">
                       ${routeInfo.orderIndex}
-                    </div>
+      </div>
                   `,
                   iconSize: [32, 32],
                   iconAnchor: [16, 16]
@@ -1019,7 +1073,7 @@ function App() {
                     <Popup className="order-popup">
                       <div className="route-info">
                         <strong>批次 {routeInfo.batchNumber} - 第 {routeInfo.orderIndex} 站</strong>
-                      </div>
+    </div>
                       <div>🏪 {marker.outlet_name}</div>
                       <div>✉️ {marker.kantong}</div>
                       <div>📦 {marker.totalDUS} DUS</div>
@@ -1038,7 +1092,7 @@ function App() {
                   <Popup className="order-popup">
                     {isExcluded && (
                       <div className="excluded-label">已出库 ✅</div>
-                    )}
+      )}
                     <div>🏪 {marker.outlet_name}</div>
                     <div>✉️ {marker.kantong}</div>
                     <div>📦 {marker.totalDUS} DUS</div>
@@ -1050,9 +1104,9 @@ function App() {
 
           {/* 移除原来分开的已出库订单标记，因为现在统一处理了 */}
         </MapContainer>
-      </div>
     </div>
-  );
+  </div>
+);
 }
 
 // CSV解析函数
