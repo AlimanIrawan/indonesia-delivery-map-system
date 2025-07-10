@@ -222,14 +222,22 @@ class RoutesVisualOptimizer {
             );
 
             this.apiCallsToday++;
+            
+            // 调试：输出Routes API响应结构
+            console.log(`🔍 Routes API响应:`, JSON.stringify(response.data, null, 2).substring(0, 500) + '...');
 
             if (response.data.routes && response.data.routes.length > 0) {
                 const route = response.data.routes[0];
                 
+                // 安全提取polyline数据
+                const polyline = route.polyline && route.polyline.encodedPolyline 
+                    ? route.polyline.encodedPolyline 
+                    : null;
+                
                 const result = {
                     distance_km: route.distanceMeters / 1000,
                     duration_minutes: this.parseDuration(route.duration),
-                    polyline: route.polyline.encodedPolyline, // 关键：可视化数据
+                    polyline: polyline, // 安全提取可视化数据
                     distance_text: `${(route.distanceMeters / 1000).toFixed(1)} km`,
                     duration_text: `${this.parseDuration(route.duration).toFixed(0)} 分钟`,
                     source: 'routes_api'
