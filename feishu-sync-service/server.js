@@ -426,9 +426,9 @@ app.get('/health', (req, res) => {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         timezone: 'Asia/Jakarta',
-        version: '2.1.0', // 添加版本号来确认部署
-        git_commit: 'ef89401', // 添加Git提交ID
-        features: ['error_handling', 'diagnostics', 'route_optimization'] // 添加功能列表
+        version: '2.2.0', // 方案B枚举优化版本
+        git_commit: 'method_b_optimization', // 方案B优化提交
+        features: ['error_handling', 'diagnostics', 'method_b_route_optimization', 'smart_enumeration'] // 添加功能列表
     });
 });
 
