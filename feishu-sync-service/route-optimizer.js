@@ -46,7 +46,7 @@ class RouteOptimizer {
             }
 
             // 第一步：按容量分批
-            const batches = this.splitIntoBatches(validatedOrders);
+            const batches = await this.splitIntoBatches(validatedOrders);
             console.log(`📋 分成 ${batches.length} 个批次`);
 
             // 第二步：每批优化路线
