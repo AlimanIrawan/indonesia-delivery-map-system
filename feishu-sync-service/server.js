@@ -3,7 +3,7 @@ const axios = require('axios');
 const cron = require('node-cron');
 const { Octokit } = require('@octokit/rest');
 const cors = require('cors');
-const RouteOptimizer = require('./route-optimizer');
+const RoutesVisualOptimizer = require('./routes-visual-optimizer');
 require('dotenv').config();
 
 const app = express();
@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 // 中间件配置
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname)); // 添加静态文件服务
 
 // 飞书API配置
 const FEISHU_APP_ID = process.env.FEISHU_APP_ID;
@@ -31,11 +32,11 @@ const octokit = new Octokit({
   auth: GITHUB_TOKEN,
 });
 
-// 初始化路线优化器
+// 初始化Routes API可视化优化器
 let routeOptimizer = null;
 if (GOOGLE_MAPS_API_KEY) {
-  routeOptimizer = new RouteOptimizer(GOOGLE_MAPS_API_KEY);
-  console.log('✅ 路线优化器初始化成功');
+  routeOptimizer = new RoutesVisualOptimizer(GOOGLE_MAPS_API_KEY);
+  console.log('✅ Routes API可视化优化器初始化成功');
 } else {
   console.log('⚠️ 未找到Google Maps API密钥，路线优化功能不可用');
 }
@@ -1275,7 +1276,7 @@ app.get('/', (req, res) => {
     lastSync: '查看日志了解详情',
     features: {
       data_sync: '飞书数据同步',
-      route_optimization: routeOptimizer ? '方案B枚举优化已启用' : '路线优化未配置',
+      route_optimization: routeOptimizer ? 'Routes API可视化优化已启用' : '路线优化未配置',
       smart_enumeration: '智能枚举分批',
       geographic_clustering: '地理聚类',
       boundary_optimization: '边界优化',
@@ -1312,10 +1313,114 @@ console.log('🔗 手动同步: POST /sync');
 console.log('🚛 路线优化: POST /api/calculate-routes');
 console.log('❤️ 健康检查: GET /health');
 
+// Routes API可视化功能直接测试端点
+app.post('/api/test-routes-visual', async (req, res) => {
+  try {
+    if (!routeOptimizer) {
+      return res.status(500).json({ error: 'Routes API可视化优化器未初始化' });
+    }
+
+    console.log('🗺️ 开始Routes API可视化功能测试...');
+
+    // 从请求体获取订单数据，如果没有则使用默认测试数据
+    const inputOrders = req.body && req.body.length > 0 ? req.body : [
+      {
+        id: 'VISUAL001',
+        name: '雅加达北区配送点',
+        lat: -6.1086,
+        lng: 106.8456,
+        dus_count: 12,
+        address: 'Jl. Kemang Raya No.123, Jakarta Utara'
+      },
+      {
+        id: 'VISUAL002', 
+        name: '雅加达中央区配送点',
+        lat: -6.1164,
+        lng: 106.9134,
+        dus_count: 8,
+        address: 'Jl. Sudirman No.456, Jakarta Pusat'
+      },
+      {
+        id: 'VISUAL003',
+        name: '雅加达南区配送点', 
+        lat: -6.1304,
+        lng: 106.8827,
+        dus_count: 15,
+        address: 'Jl. Gatot Subroto No.789, Jakarta Selatan'
+      },
+      {
+        id: 'VISUAL004',
+        name: '雅加达西区配送点',
+        lat: -6.1289,
+        lng: 106.8067,
+        dus_count: 6,
+        address: 'Jl. Panjang No.321, Jakarta Barat'
+      },
+      {
+        id: 'VISUAL005',
+        name: '雅加达东区配送点',
+        lat: -6.1127,
+        lng: 106.9457,
+        dus_count: 10,
+        address: 'Jl. Raya Bekasi No.654, Jakarta Timur'
+      }
+    ];
+
+    console.log(`🚛 Routes API可视化测试: ${inputOrders.length} 个订单`);
+
+    const startTime = Date.now();
+    const visualResult = await routeOptimizer.optimizeAllRoutes(inputOrders);
+    const endTime = Date.now();
+    const executionTime = endTime - startTime;
+
+    console.log(`✅ Routes API可视化测试完成，耗时: ${executionTime}ms`);
+
+    // 统计可视化数据
+    let totalPolylines = 0;
+    let routesWithPolylines = 0;
+    
+    if (visualResult.batches) {
+      visualResult.batches.forEach(batch => {
+        if (batch.route_polylines) {
+          totalPolylines += batch.route_polylines.length;
+          routesWithPolylines += batch.route_polylines.filter(p => p.polyline).length;
+        }
+      });
+    }
+
+    const response = {
+      success: true,
+      api_type: 'Routes API可视化优化',
+      execution_time_ms: executionTime,
+      test_summary: {
+        input_orders: inputOrders.length,
+        output_batches: visualResult.batches ? visualResult.batches.length : 0,
+        total_route_segments: totalPolylines,
+        polylines_generated: routesWithPolylines,
+        visualization_ready: visualResult.visualization_ready || false
+      },
+      optimization_result: visualResult,
+      api_usage: visualResult.api_usage || {},
+      timestamp: new Date().toISOString()
+    };
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('❌ Routes API可视化测试失败:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      api_type: 'Routes API可视化优化',
+      stack: error.stack
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 服务运行在端口 ${PORT}`);
   console.log(`🌍 服务地址: https://feishu-delivery-sync.onrender.com`);
   console.log('/' .repeat(60));
 }); 
 
-// 版本更新: 添加手动刷新API支持 - v1.1.0 
+// 版本更新: 添加Routes API可视化功能 - v2.3.0 

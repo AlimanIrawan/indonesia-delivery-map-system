@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ORDER001",
+    "name": "雅加达北区配送点",
+    "lat": -6.1086,
+    "lng": 106.8456,
+    "dus_count": 12,
+    "address": "Jl. Kemang Raya No.123, Jakarta Utara"
+  },
+  {
+    "id": "ORDER002", 
+    "name": "雅加达中央区配送点",
+    "lat": -6.1164,
+    "lng": 106.9134,
+    "dus_count": 8,
+    "address": "Jl. Sudirman No.456, Jakarta Pusat"
+  },
+  {
+    "id": "ORDER003",
+    "name": "雅加达南区配送点", 
+    "lat": -6.1304,
+    "lng": 106.8827,
+    "dus_count": 15,
+    "address": "Jl. Gatot Subroto No.789, Jakarta Selatan"
+  },
+  {
+    "id": "ORDER004",
+    "name": "雅加达西区配送点",
+    "lat": -6.1289,
+    "lng": 106.8067,
+    "dus_count": 6,
+    "address": "Jl. Panjang No.321, Jakarta Barat"
+  },
+  {
+    "id": "ORDER005",
+    "name": "雅加达东区配送点",
+    "lat": -6.1127,
+    "lng": 106.9457,
+    "dus_count": 10,
+    "address": "Jl. Raya Bekasi No.654, Jakarta Timur"
+  }
+] 

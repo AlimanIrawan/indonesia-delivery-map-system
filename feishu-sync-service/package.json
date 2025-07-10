@@ -8,14 +8,14 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.6.0",
-    "node-cron": "^3.0.3",
+    "@googlemaps/google-maps-services-js": "^3.3.42",
     "@octokit/rest": "^20.0.2",
+    "axios": "^1.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "@googlemaps/google-maps-services-js": "^3.3.42",
-    "node-cache": "^5.1.2"
+    "express": "^4.18.2",
+    "node-cache": "^5.1.2",
+    "node-cron": "^3.0.3"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -33,4 +33,4 @@
   ],
   "author": "AI Assistant",
   "license": "MIT"
-} 
+}
