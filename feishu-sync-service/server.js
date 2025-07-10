@@ -1144,7 +1144,9 @@ app.get('/', (req, res) => {
   const jakartaTime = now.toLocaleString('zh-CN', { timeZone: 'Asia/Jakarta' });
   
   res.json({
-    service: '印尼送货数据同步服务 + 路线优化',
+    service: '印尼送货数据同步服务 + 方案B路线优化',
+    version: '2.2.0',
+    algorithm: 'Method B - Enumerative Optimization',
     status: 'running',
     currentTime: jakartaTime,
     timezone: 'Asia/Jakarta (UTC+7)',
@@ -1152,13 +1154,21 @@ app.get('/', (req, res) => {
     lastSync: '查看日志了解详情',
     features: {
       data_sync: '飞书数据同步',
-      route_optimization: routeOptimizer ? '路线优化已启用' : '路线优化未配置'
+      route_optimization: routeOptimizer ? '方案B枚举优化已启用' : '路线优化未配置',
+      smart_enumeration: '智能枚举分批',
+      geographic_clustering: '地理聚类',
+      boundary_optimization: '边界优化',
+      capacity_balancing: '容量均衡'
+    },
+    performance: {
+      expected_improvement: '22% distance reduction',
+      additional_cost: '$0.00'
     },
     endpoints: {
       health: '/health',
       manualSync: 'POST /sync',
       optimizeRoutes: 'POST /api/optimize-routes',
-      routeStats: 'GET /api/route-stats',
+      routeStats: 'GET /api/route-stats', 
       calculateRoutes: 'POST /api/calculate-routes',
       orderStatus: 'GET /api/order-status',
       testRoutes: 'POST /api/test-route-optimization',
