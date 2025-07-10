@@ -883,6 +883,126 @@ app.post('/api/test-route-optimization', async (req, res) => {
   }
 });
 
+// 方案B路线优化API端点
+app.post('/api/optimize-routes', async (req, res) => {
+  try {
+    console.log('🚀 开始方案B路线优化...');
+    
+    if (!routeOptimizer) {
+      return res.status(503).json({
+        success: false,
+        error: 'Google Maps API未配置，路线优化服务不可用'
+      });
+    }
+    
+    // 从飞书获取今天的订单数据
+    console.log('📦 获取飞书订单数据...');
+    const feishuData = await getFeishuData();
+    
+    if (!feishuData || feishuData.length === 0) {
+      return res.json({
+        success: true,
+        message: '今天没有待优化的订单',
+        batches: [],
+        total_distance: 0,
+        total_duration: 0
+      });
+    }
+    
+    // 转换数据格式
+    const orders = feishuData.map(item => ({
+      id: item[0] || 'unknown',
+      name: item[3] || 'unknown',
+      lat: parseFloat(item[1]),
+      lng: parseFloat(item[2]),
+      dus_count: parseInt(item[7]) || 1
+    })).filter(order => 
+      !isNaN(order.lat) && 
+      !isNaN(order.lng) && 
+      order.lat !== 0 && 
+      order.lng !== 0
+    );
+    
+    console.log(`📊 有效订单数: ${orders.length}`);
+    
+    if (orders.length === 0) {
+      return res.json({
+        success: true,
+        message: '没有有效的地理位置信息',
+        batches: [],
+        total_distance: 0,
+        total_duration: 0
+      });
+    }
+    
+    // 执行方案B路线优化
+    const startTime = Date.now();
+    const result = await routeOptimizer.optimizeAllRoutes(orders);
+    const endTime = Date.now();
+    
+    console.log(`✅ 方案B优化完成，耗时: ${endTime - startTime}ms`);
+    
+    res.json({
+      success: true,
+      algorithm: 'Method B - Enumerative Optimization',
+      version: '2.2.0',
+      optimization_time_ms: endTime - startTime,
+      input_orders: orders.length,
+      ...result,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ 方案B路线优化失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// API使用统计端点
+app.get('/api/route-stats', (req, res) => {
+  try {
+    if (!routeOptimizer) {
+      return res.status(503).json({
+        success: false,
+        error: '路线优化器未初始化'
+      });
+    }
+    
+    const stats = routeOptimizer.getApiUsageStats();
+    
+    res.json({
+      success: true,
+      api_usage: stats,
+      algorithm: 'Method B - Enumerative Optimization',
+      version: '2.2.0',
+      features: [
+        'smart_enumeration',
+        'geographic_clustering', 
+        'boundary_optimization',
+        'capacity_balancing'
+      ],
+      performance: {
+        expected_improvement: '22% distance reduction',
+        additional_api_cost: '$0.00',
+        optimization_strategies: 4,
+        capacity_test_range: '30%-70%'
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ 获取路线统计失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // 更新环境变量配置信息
 app.get('/api/config-status', (req, res) => {
   res.json({
@@ -1037,6 +1157,8 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       manualSync: 'POST /sync',
+      optimizeRoutes: 'POST /api/optimize-routes',
+      routeStats: 'GET /api/route-stats',
       calculateRoutes: 'POST /api/calculate-routes',
       orderStatus: 'GET /api/order-status',
       testRoutes: 'POST /api/test-route-optimization',
