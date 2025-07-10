@@ -96,36 +96,40 @@ class RouteOptimizer {
 
         for (const order of orders) {
             try {
-                // 检查必需字段
-                if (!order.latitude || !order.longitude || !order.totalDUS) {
-                    console.log(`⚠️ 跳过无效订单: 缺少必需字段`);
+                // 检查必需字段 - 支持多种字段名格式
+                const lat = order.lat || order.latitude;
+                const lng = order.lng || order.longitude;
+                const dusCount = order.dus_count || order.totalDUS;
+                
+                if (!lat || !lng || !dusCount) {
+                    console.log(`⚠️ 跳过无效订单: 缺少必需字段 (lat=${lat}, lng=${lng}, dus=${dusCount})`);
                     continue;
                 }
 
                 // 验证坐标有效性
-                const lat = parseFloat(order.latitude);
-                const lng = parseFloat(order.longitude);
-                if (!(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)) {
-                    console.log(`⚠️ 跳过无效订单: 坐标超出范围 (${lat}, ${lng})`);
+                const latFloat = parseFloat(lat);
+                const lngFloat = parseFloat(lng);
+                if (!(latFloat >= -90 && latFloat <= 90 && lngFloat >= -180 && lngFloat <= 180)) {
+                    console.log(`⚠️ 跳过无效订单: 坐标超出范围 (${latFloat}, ${lngFloat})`);
                     continue;
                 }
 
                 // 验证货物数量
-                const dusCount = parseInt(order.totalDUS);
-                if (dusCount <= 0) {
-                    console.log(`⚠️ 跳过无效订单: 货物数量无效 (${dusCount})`);
+                const dusCountInt = parseInt(dusCount);
+                if (dusCountInt <= 0) {
+                    console.log(`⚠️ 跳过无效订单: 货物数量无效 (${dusCountInt})`);
                     continue;
                 }
 
                 // 标准化订单数据
                 const validatedOrder = {
-                    id: order.shop_code || `order_${validated.length}`,
-                    name: order.outlet_name || '未知店铺',
-                    address: '未知地址',
-                    lat: lat,
-                    lng: lng,
-                    dus_count: dusCount,
-                    phone: order.phoneNumber || '',
+                    id: order.id || order.shop_code || `order_${validated.length}`,
+                    name: order.name || order.outlet_name || '未知店铺',
+                    address: order.address || order.outlet_name || '未知地址',
+                    lat: latFloat,
+                    lng: lngFloat,
+                    dus_count: dusCountInt,
+                    phone: order.phone || order.phoneNumber || '',
                     kantong: order.kantong || '',
                     orderType: order.orderType || '',
                     finalPrice: order.finalPrice || '',
