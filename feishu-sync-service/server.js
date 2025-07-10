@@ -1168,6 +1168,97 @@ app.post('/api/test-connections', async (req, res) => {
   });
 });
 
+// Google Maps API诊断端点
+app.post('/api/google-maps-diagnostic', async (req, res) => {
+  try {
+    console.log('🔍 开始Google Maps API诊断...');
+    
+    if (!GOOGLE_MAPS_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        error: 'Google Maps API密钥未配置',
+        recommendations: [
+          '在Render环境变量中设置GOOGLE_MAPS_API_KEY',
+          '确保API密钥有效且已启用必要服务'
+        ]
+      });
+    }
+
+    // 导入诊断工具
+    const GoogleMapsApiDiagnostic = require('./google-maps-diagnostic');
+    const diagnostic = new GoogleMapsApiDiagnostic(GOOGLE_MAPS_API_KEY);
+    
+    // 运行完整诊断
+    const results = await diagnostic.runDiagnostic();
+    
+    // 测试特定路线
+    await diagnostic.testSpecificRoute();
+    
+    // 返回诊断结果
+    res.json({
+      success: true,
+      diagnostic_results: results,
+      api_key_configured: true,
+      api_key_format: GOOGLE_MAPS_API_KEY.startsWith('AIza') ? 'valid' : 'invalid',
+      timestamp: new Date().toISOString(),
+      next_steps: results.recommendations
+    });
+    
+  } catch (error) {
+    console.error('❌ Google Maps API诊断失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      diagnostic_failed: true,
+      recommendations: [
+        '检查API密钥配置',
+        '验证网络连接',
+        '确认API服务可用性'
+      ]
+    });
+  }
+});
+
+// API修复建议端点
+app.get('/api/google-maps-fix-guide', (req, res) => {
+  res.json({
+    success: true,
+    common_403_fixes: [
+      {
+        issue: 'Distance Matrix API未启用',
+        solution: '访问 Google Cloud Console > APIs & Services > Library，搜索并启用 Distance Matrix API',
+        url: 'https://console.cloud.google.com/apis/library/distance-matrix-backend.googleapis.com'
+      },
+      {
+        issue: 'API密钥权限限制',
+        solution: '在 Google Cloud Console > APIs & Services > Credentials 中检查API密钥限制设置',
+        url: 'https://console.cloud.google.com/apis/credentials'
+      },
+      {
+        issue: '免费配额用完',
+        solution: '启用计费账户或等待配额重置（每月2500次免费调用）',
+        url: 'https://console.cloud.google.com/billing'
+      },
+      {
+        issue: 'API密钥域名限制',
+        solution: '在API密钥设置中添加 *.onrender.com 到允许的域名列表，或移除域名限制',
+        note: 'Render服务器IP是动态的，建议使用无限制的API密钥'
+      }
+    ],
+    backup_solution: {
+      description: '系统已实现直线距离备用方案',
+      accuracy: '约为实际道路距离的70-80%',
+      cost: '完全免费',
+      recommendation: '对于路线优化仍然有效，只是精度略低'
+    },
+    status_check: {
+      health_endpoint: '/health',
+      diagnostic_endpoint: '/api/google-maps-diagnostic',
+      stats_endpoint: '/api/route-stats'
+    }
+  });
+});
+
 // 服务信息端点
 app.get('/', (req, res) => {
   const now = new Date();

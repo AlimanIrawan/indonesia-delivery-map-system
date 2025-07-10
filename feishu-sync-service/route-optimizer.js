@@ -745,17 +745,44 @@ class RouteOptimizer {
             }
 
         } catch (error) {
-            console.log(`⚠️ API调用失败，使用直线距离: ${error.message}`);
+            // 增强错误处理和分析
+            let errorType = 'unknown';
+            let shouldRetry = false;
             
-            // 降级：使用直线距离
-            const distance = this.calculateStraightLineDistance(from.lat, from.lng, to.lat, to.lng);
+            if (error.response?.status === 403) {
+                errorType = 'permission_denied';
+                console.log(`🔒 API权限错误(403): ${error.message}`);
+                console.log('💡 可能原因: Distance Matrix API未启用、API密钥限制、或配额用完');
+            } else if (error.response?.status === 429) {
+                errorType = 'rate_limit';
+                shouldRetry = true;
+                console.log(`⏱️ API速率限制(429): ${error.message}`);
+            } else if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+                errorType = 'network';
+                shouldRetry = true;
+                console.log(`🌐 网络错误(${error.code}): ${error.message}`);
+            } else {
+                console.log(`⚠️ API调用失败: ${error.message}`);
+            }
+            
+            // 降级：使用直线距离 + 道路系数
+            const straightDistance = this.calculateStraightLineDistance(from.lat, from.lng, to.lat, to.lng);
+            const roadFactor = 1.4; // Jakarta地区道路系数
+            const estimatedDistance = straightDistance * roadFactor;
+            
             const result = {
-                distance_km: distance,
-                duration_minutes: distance * 2, // 估算：1km约2分钟
-                distance_text: `${distance.toFixed(1)} km (估算)`,
-                duration_text: `${(distance * 2).toFixed(0)} 分钟 (估算)`
+                distance_km: estimatedDistance,
+                duration_minutes: estimatedDistance * 2.5, // 雅加达交通系数
+                distance_text: `${estimatedDistance.toFixed(1)} km (估算)`,
+                duration_text: `${(estimatedDistance * 2.5).toFixed(0)} 分钟 (估算)`,
+                source: 'fallback',
+                error_type: errorType,
+                straight_distance: straightDistance,
+                road_factor: roadFactor
             };
 
+            // 缓存备用结果以减少重复计算
+            this.distanceCache.set(cacheKey, result);
             return result;
         }
     }
