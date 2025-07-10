@@ -1,7 +1,13 @@
 /**
- * Routes API 路线可视化优化器
- * 专注于基础路线可视化功能，不包含导航等复杂功能
- * 直接替换Legacy API，提供真实路线数据
+ * Routes API 路线可视化优化器 v2.0
+ * 集成方案B枚举优化算法 + Routes API可视化
+ * 
+ * 方案B特性：
+ * - 智能枚举分批优化
+ * - 地理聚类 + 边界优化  
+ * - 容量均衡 (30%-70%测试)
+ * - 迭代边界调整
+ * - Routes API真实路径可视化
  */
 
 const axios = require('axios');
@@ -23,7 +29,7 @@ class RoutesVisualOptimizer {
         this.apiCallsToday = 0;
         this.lastResetDate = new Date().toDateString();
         
-        console.log('🗺️ Routes API可视化优化器初始化完成');
+        console.log('🗺️ Routes API可视化优化器v2.0初始化完成 (集成方案B算法)');
     }
 
     /**
@@ -31,7 +37,7 @@ class RoutesVisualOptimizer {
      */
     async optimizeAllRoutes(orders) {
         try {
-            console.log(`🚀 开始Routes API路线优化...`);
+            console.log(`🚀 开始方案B Routes API路线优化...`);
             console.log(`📦 总订单数: ${orders.length}`);
             console.log(`🚛 车辆容量限制: ${this.maxCapacity}件`);
 
@@ -41,9 +47,9 @@ class RoutesVisualOptimizer {
                 return { error: '没有有效的订单数据' };
             }
 
-            // 第一步：按容量分批
+            // 第一步：方案B枚举优化分批
             const batches = await this.splitIntoBatches(validatedOrders);
-            console.log(`📋 分成 ${batches.length} 个批次`);
+            console.log(`📋 方案B优化完成，分成 ${batches.length} 个批次`);
 
             // 第二步：每批优化路线并获取可视化数据
             const optimizedBatches = [];
@@ -70,10 +76,11 @@ class RoutesVisualOptimizer {
                 total_duration: Math.round(totalDuration * 10) / 10,
                 statistics: statistics,
                 api_usage: this.getApiUsageStats(),
-                visualization_ready: true // 标识包含可视化数据
+                visualization_ready: true, // 标识包含可视化数据
+                algorithm: 'Method B - Enumerative Optimization + Routes API Visual'
             };
 
-            console.log(`\n✅ Routes API路线优化完成!`);
+            console.log(`\n✅ 方案B Routes API路线优化完成!`);
             console.log(`📊 总距离: ${totalDistance.toFixed(1)}km`);
             console.log(`⏱️ 总时间: ${totalDuration.toFixed(1)}分钟`);
             console.log(`🗺️ 可视化数据: 已生成`);
@@ -81,7 +88,7 @@ class RoutesVisualOptimizer {
             return result;
 
         } catch (error) {
-            console.error('❌ Routes API优化失败:', error);
+            console.error('❌ 方案B Routes API优化失败:', error);
             return { error: error.message };
         }
     }
@@ -394,9 +401,388 @@ class RoutesVisualOptimizer {
     }
 
     /**
-     * 分批逻辑
+     * 验证并清理订单数据
+     */
+    validateOrders(orders) {
+        const validated = [];
+
+        for (const order of orders) {
+            try {
+                // 检查必需字段 - 支持多种字段名格式
+                const lat = order.lat || order.latitude;
+                const lng = order.lng || order.longitude;
+                const dusCount = order.dus_count || order.totalDUS;
+                
+                if (!lat || !lng || !dusCount) {
+                    console.log(`⚠️ 跳过无效订单: 缺少必需字段 (lat=${lat}, lng=${lng}, dus=${dusCount})`);
+                    continue;
+                }
+
+                // 验证坐标有效性
+                const latFloat = parseFloat(lat);
+                const lngFloat = parseFloat(lng);
+                if (!(latFloat >= -90 && latFloat <= 90 && lngFloat >= -180 && lngFloat <= 180)) {
+                    console.log(`⚠️ 跳过无效订单: 坐标超出范围 (${latFloat}, ${lngFloat})`);
+                    continue;
+                }
+
+                // 验证货物数量
+                const dusCountInt = parseInt(dusCount);
+                if (dusCountInt <= 0) {
+                    console.log(`⚠️ 跳过无效订单: 货物数量无效 (${dusCountInt})`);
+                    continue;
+                }
+
+                // 标准化订单数据
+                const validatedOrder = {
+                    id: order.id || order.shop_code || `order_${validated.length}`,
+                    name: order.name || order.outlet_name || '未知店铺',
+                    address: order.address || order.outlet_name || '未知地址',
+                    lat: latFloat,
+                    lng: lngFloat,
+                    dus_count: dusCountInt,
+                    phone: order.phone || order.phoneNumber || '',
+                    kantong: order.kantong || '',
+                    orderType: order.orderType || '',
+                    finalPrice: order.finalPrice || '',
+                    original_data: order
+                };
+
+                validated.push(validatedOrder);
+
+            } catch (error) {
+                console.log(`⚠️ 跳过无效订单: ${error.message}`);
+                continue;
+            }
+        }
+
+        console.log(`✅ 验证完成: ${validated.length}/${orders.length} 个有效订单`);
+        return validated;
+    }
+
+    /**
+     * 方案B：枚举优化分批算法 - 找到总距离最短的订单分配
      */
     async splitIntoBatches(orders) {
+        console.log('🔍 使用方案B枚举优化算法...');
+        
+        const totalDUS = orders.reduce((sum, order) => sum + order.dus_count, 0);
+        
+        // 如果订单较少（≤15个），使用完全枚举优化
+        if (orders.length <= 15) {
+            console.log('📊 订单数较少，使用完全枚举优化');
+            return await this.enumerativeOptimization(orders);
+        }
+        
+        // 订单较多时，使用智能枚举（测试多种分割策略）
+        console.log('📊 订单数较多，使用智能枚举优化');
+        return await this.smartEnumerativeOptimization(orders);
+    }
+
+    /**
+     * 完全枚举优化：适用于订单数较少的情况
+     */
+    async enumerativeOptimization(orders) {
+        let bestSolution = null;
+        let minTotalDistance = Infinity;
+        
+        // 定义不同的排序和分割策略
+        const strategies = [
+            { 
+                name: '按纬度排序', 
+                sort: (a, b) => a.lat - b.lat 
+            },
+            { 
+                name: '按经度排序', 
+                sort: (a, b) => a.lng - b.lng 
+            },
+            { 
+                name: '按件数降序', 
+                sort: (a, b) => b.dus_count - a.dus_count 
+            },
+            { 
+                name: '按件数升序', 
+                sort: (a, b) => a.dus_count - b.dus_count 
+            }
+        ];
+
+        // 测试不同的第一趟容量分配
+        const totalDUS = orders.reduce((sum, order) => sum + order.dus_count, 0);
+        const minFirstCapacity = Math.max(30, Math.floor(totalDUS * 0.3)); // 至少30%
+        const maxFirstCapacity = Math.min(this.maxCapacity, Math.floor(totalDUS * 0.7)); // 最多70%
+
+        console.log(`🔢 测试容量范围: ${minFirstCapacity} - ${maxFirstCapacity} 件`);
+
+        for (const strategy of strategies) {
+            console.log(`📊 测试策略: ${strategy.name}`);
+            const sortedOrders = [...orders].sort(strategy.sort);
+            
+            // 测试不同的容量分配
+            for (let firstCapacity = minFirstCapacity; firstCapacity <= maxFirstCapacity; firstCapacity += 5) {
+                const solution = await this.testBatchSplit(sortedOrders, firstCapacity);
+                
+                if (solution && solution.totalDistance < minTotalDistance) {
+                    minTotalDistance = solution.totalDistance;
+                    bestSolution = solution.batches;
+                    console.log(`🎯 找到更优解: ${strategy.name}, 容量=${firstCapacity}, 距离=${solution.totalDistance.toFixed(2)}km`);
+                }
+            }
+        }
+
+        return bestSolution || this.defaultSplit(orders);
+    }
+
+    /**
+     * 智能枚举优化：适用于订单数较多的情况
+     */
+    async smartEnumerativeOptimization(orders) {
+        console.log('🧠 使用智能枚举策略...');
+        
+        // 先用地理聚类粗分，再枚举优化边界
+        const clusters = await this.geographicClustering(orders);
+        
+        // 枚举优化：调整边界订单
+        const optimizedClusters = await this.optimizeClusterBoundaries(clusters);
+        
+        return optimizedClusters;
+    }
+
+    /**
+     * 地理聚类：按南北或东西方向分割
+     */
+    async geographicClustering(orders) {
+        const avgLat = orders.reduce((sum, order) => sum + order.lat, 0) / orders.length;
+        const avgLng = orders.reduce((sum, order) => sum + order.lng, 0) / orders.length;
+        
+        // 测试南北分割和东西分割，选择更均衡的
+        const northSouth = {
+            cluster1: orders.filter(order => order.lat > avgLat),
+            cluster2: orders.filter(order => order.lat <= avgLat)
+        };
+        
+        const eastWest = {
+            cluster1: orders.filter(order => order.lng > avgLng),
+            cluster2: orders.filter(order => order.lng <= avgLng)
+        };
+        
+        // 计算容量分布的均衡性
+        const nsBalance = this.calculateBalance(northSouth);
+        const ewBalance = this.calculateBalance(eastWest);
+        
+        console.log(`📊 南北分割均衡度: ${nsBalance.toFixed(2)}`);
+        console.log(`📊 东西分割均衡度: ${ewBalance.toFixed(2)}`);
+        
+        const chosenClusters = nsBalance > ewBalance ? northSouth : eastWest;
+        console.log(`📍 选择${nsBalance > ewBalance ? '南北' : '东西'}分割策略`);
+        
+        return [chosenClusters.cluster1, chosenClusters.cluster2].filter(cluster => cluster.length > 0);
+    }
+
+    /**
+     * 计算聚类均衡性（容量分布）
+     */
+    calculateBalance(clusters) {
+        const cap1 = clusters.cluster1.reduce((sum, order) => sum + order.dus_count, 0);
+        const cap2 = clusters.cluster2.reduce((sum, order) => sum + order.dus_count, 0);
+        const total = cap1 + cap2;
+        
+        if (total === 0) return 0;
+        
+        // 均衡度 = 1 - |容量差异| / 总容量
+        const imbalance = Math.abs(cap1 - cap2) / total;
+        return 1 - imbalance;
+    }
+
+    /**
+     * 优化聚类边界：调整边界订单以减少总距离
+     */
+    async optimizeClusterBoundaries(clusters) {
+        console.log('🔧 优化聚类边界...');
+        
+        if (clusters.length !== 2) return clusters;
+        
+        let [cluster1, cluster2] = clusters;
+        let improved = true;
+        let iterations = 0;
+        const maxIterations = 20;
+        
+        while (improved && iterations < maxIterations) {
+            improved = false;
+            iterations++;
+            
+            // 计算当前总距离
+            const currentDistance = await this.calculateClustersDistance([cluster1, cluster2]);
+            
+            // 尝试移动边界订单
+            for (let i = 0; i < cluster1.length; i++) {
+                const order = cluster1[i];
+                
+                // 检查容量约束
+                const cluster1Capacity = cluster1.reduce((s, o) => s + o.dus_count, 0);
+                const cluster2Capacity = cluster2.reduce((s, o) => s + o.dus_count, 0);
+                
+                if (cluster1Capacity - order.dus_count >= 20 && 
+                    cluster2Capacity + order.dus_count <= this.maxCapacity) {
+                    
+                    // 尝试移动订单
+                    const newCluster1 = cluster1.filter((_, idx) => idx !== i);
+                    const newCluster2 = [...cluster2, order];
+                    
+                    const newDistance = await this.calculateClustersDistance([newCluster1, newCluster2]);
+                    
+                    if (newDistance < currentDistance) {
+                        cluster1 = newCluster1;
+                        cluster2 = newCluster2;
+                        improved = true;
+                        console.log(`🔄 第${iterations}次优化: 移动订单${order.id}, 距离改善${(currentDistance - newDistance).toFixed(2)}km`);
+                        break;
+                    }
+                }
+            }
+            
+            // 反向尝试：从cluster2移动到cluster1
+            if (!improved) {
+                for (let i = 0; i < cluster2.length; i++) {
+                    const order = cluster2[i];
+                    
+                    const cluster1Capacity = cluster1.reduce((s, o) => s + o.dus_count, 0);
+                    const cluster2Capacity = cluster2.reduce((s, o) => s + o.dus_count, 0);
+                    
+                    if (cluster2Capacity - order.dus_count >= 20 && 
+                        cluster1Capacity + order.dus_count <= this.maxCapacity) {
+                        
+                        const newCluster1 = [...cluster1, order];
+                        const newCluster2 = cluster2.filter((_, idx) => idx !== i);
+                        
+                        const newDistance = await this.calculateClustersDistance([newCluster1, newCluster2]);
+                        
+                        if (newDistance < currentDistance) {
+                            cluster1 = newCluster1;
+                            cluster2 = newCluster2;
+                            improved = true;
+                            console.log(`🔄 第${iterations}次优化: 移动订单${order.id}, 距离改善${(currentDistance - newDistance).toFixed(2)}km`);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        const finalClusters = [cluster1, cluster2].filter(cluster => cluster.length > 0);
+        
+        // 输出最终结果
+        finalClusters.forEach((cluster, index) => {
+            const capacity = cluster.reduce((sum, order) => sum + order.dus_count, 0);
+            console.log(`📦 批次 ${index + 1}: ${cluster.length} 个订单, ${capacity} 件货物`);
+        });
+        
+        return finalClusters;
+    }
+
+    /**
+     * 计算多个聚类的总距离
+     */
+    async calculateClustersDistance(clusters) {
+        let totalDistance = 0;
+        
+        for (const cluster of clusters) {
+            if (cluster.length === 0) continue;
+            
+            // 使用最近邻TSP估算
+            const tsp = await this.nearestNeighborTsp(cluster);
+            const distance = await this.calculateRouteDistance(tsp);
+            totalDistance += distance.total_distance;
+        }
+        
+        return totalDistance;
+    }
+
+    /**
+     * 计算路线总距离（基于直线距离估算，适用于分批优化）
+     */
+    async calculateRouteDistance(route) {
+        if (route.length === 0) {
+            return { total_distance: 0, total_duration: 0 };
+        }
+
+        let totalDistance = 0;
+        let totalDuration = 0;
+
+        // 从总部到第一个点
+        const toFirstDistance = this.calculateStraightLineDistance(
+            this.headquarters.lat, this.headquarters.lng,
+            route[0].lat, route[0].lng
+        );
+        totalDistance += toFirstDistance;
+        totalDuration += toFirstDistance * 2.5; // 估算时间
+
+        // 遍历路线中的每个点
+        for (let i = 0; i < route.length - 1; i++) {
+            const distance = this.calculateStraightLineDistance(
+                route[i].lat, route[i].lng,
+                route[i + 1].lat, route[i + 1].lng
+            );
+            totalDistance += distance;
+            totalDuration += distance * 2.5;
+        }
+
+        // 从最后一个点回到总部
+        const fromLastDistance = this.calculateStraightLineDistance(
+            route[route.length - 1].lat, route[route.length - 1].lng,
+            this.headquarters.lat, this.headquarters.lng
+        );
+        totalDistance += fromLastDistance;
+        totalDuration += fromLastDistance * 2.5;
+
+        return {
+            total_distance: totalDistance,
+            total_duration: totalDuration
+        };
+    }
+
+    /**
+     * 测试特定的批次分割
+     */
+    async testBatchSplit(sortedOrders, firstCapacity) {
+        let firstBatch = [];
+        let secondBatch = [];
+        let currentCapacity = 0;
+
+        // 贪心选择第一批次
+        for (const order of sortedOrders) {
+            if (currentCapacity + order.dus_count <= firstCapacity) {
+                firstBatch.push(order);
+                currentCapacity += order.dus_count;
+            } else {
+                secondBatch.push(order);
+            }
+        }
+
+        // 检查第二批次是否超载
+        const secondCapacity = secondBatch.reduce((sum, order) => sum + order.dus_count, 0);
+        if (secondCapacity > this.maxCapacity) {
+            return null; // 不可行的分割
+        }
+
+        if (firstBatch.length === 0 || secondBatch.length === 0) {
+            return null; // 无效分割
+        }
+
+        // 计算总距离
+        const totalDistance = await this.calculateClustersDistance([firstBatch, secondBatch]);
+        
+        return {
+            batches: [firstBatch, secondBatch],
+            totalDistance: totalDistance
+        };
+    }
+
+    /**
+     * 默认分割策略（备用）
+     */
+    defaultSplit(orders) {
+        console.log('📋 使用默认分割策略');
+        
         const batches = [];
         let currentBatch = [];
         let currentCapacity = 0;
@@ -419,23 +805,6 @@ class RoutesVisualOptimizer {
         }
 
         return batches;
-    }
-
-    /**
-     * 验证订单数据
-     */
-    validateOrders(orders) {
-        return orders.filter(order => {
-            if (!order.lat || !order.lng || order.lat === 0 || order.lng === 0) {
-                console.log(`⚠️ 跳过无效订单: ${order.id || order.name} (缺少坐标)`);
-                return false;
-            }
-            if (!order.dus_count || order.dus_count <= 0) {
-                console.log(`⚠️ 跳过无效订单: ${order.id || order.name} (DUS数量无效)`);
-                return false;
-            }
-            return true;
-        });
     }
 
     /**
