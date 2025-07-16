@@ -146,8 +146,8 @@ if [ -z "$current_branch" ]; then
     git checkout -b main
     print_info "创建并切换到main分支"
 fi
-
-# 推送到远程仓库
+        
+        # 推送到远程仓库
 print_info "推送到远程仓库..."
 if git push -u origin "$current_branch"; then
     print_success "远程推送完成！"
@@ -157,23 +157,23 @@ else
     if [[ $force_push =~ ^[Yy]$ ]]; then
         git push -u origin "$current_branch" --force
         print_success "强制推送完成！"
-    else
+        else
         print_error "推送被取消"
         exit 1
     fi
 fi
 
 # 显示仓库信息
-echo ""
+        echo ""
 print_success "Git推送完成！"
 echo "📝 提交信息: 送货路线优化系统更新"
 echo "🌐 远程仓库: $remote_url"
 echo "🌿 分支: $current_branch"
 echo "📅 提交时间: $current_date"
-echo ""
+        echo ""
 print_info "您可以通过以下方式访问仓库:"
 echo "   git clone $remote_url"
-echo ""
+        echo ""
 
 # 可选：打开仓库网页
 if command -v open &> /dev/null; then

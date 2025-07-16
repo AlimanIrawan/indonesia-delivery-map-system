@@ -468,7 +468,7 @@
   .layer-control {
     top: 60px;
     right: 10px;
-  }
+}
 
   .location-button {
     top: 130px;
@@ -476,13 +476,13 @@
     width: 32px;
     height: 32px;
     font-size: 12px;
-  }
+}
 
   .location-error {
     top: 170px;
     right: 10px;
     left: 10px;
-  }
+}
 
   .top-right-controls {
     top: 15px;
