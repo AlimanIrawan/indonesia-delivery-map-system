@@ -494,6 +494,21 @@ class RoutesVisualOptimizer {
         let bestSolution = null;
         let minTotalDistance = Infinity;
         
+        const totalDUS = orders.reduce((sum, order) => sum + order.dus_count, 0);
+        console.log(`📊 总货物量: ${totalDUS}件, 车辆容量: ${this.maxCapacity}件`);
+        
+        // 🔍 智能判断：如果总货物量 ≤ 车辆容量，优先考虑一趟完成
+        if (totalDUS <= this.maxCapacity) {
+            console.log('🚛 货物可以一趟完成，测试一趟 vs 分两趟方案...');
+            
+            // 测试一趟完成方案
+            const singleTripDistance = await this.testSingleTrip(orders);
+            console.log(`📏 一趟完成距离: ${singleTripDistance.toFixed(2)}km`);
+            
+            bestSolution = [orders];
+            minTotalDistance = singleTripDistance;
+        }
+        
         // 定义不同的排序和分割策略
         const strategies = [
             { 
@@ -514,12 +529,19 @@ class RoutesVisualOptimizer {
             }
         ];
 
-        // 测试不同的第一趟容量分配
-        const totalDUS = orders.reduce((sum, order) => sum + order.dus_count, 0);
-        const minFirstCapacity = Math.max(30, Math.floor(totalDUS * 0.3)); // 至少30%
-        const maxFirstCapacity = Math.min(this.maxCapacity, Math.floor(totalDUS * 0.7)); // 最多70%
-
-        console.log(`🔢 测试容量范围: ${minFirstCapacity} - ${maxFirstCapacity} 件`);
+        // 测试分两趟的方案
+        const minFirstCapacity = Math.max(20, Math.floor(totalDUS * 0.3)); // 至少30%或20件
+        let maxFirstCapacity;
+        
+        if (totalDUS <= this.maxCapacity) {
+            // 如果可以一趟完成，测试更广范围的分割（包含接近100%）
+            maxFirstCapacity = Math.min(this.maxCapacity, totalDUS - 10); // 确保第二趟至少10件
+            console.log(`🔄 测试分两趟范围: ${minFirstCapacity}-${maxFirstCapacity}件 (对比一趟完成)`);
+        } else {
+            // 如果必须分两趟，使用原有逻辑
+            maxFirstCapacity = Math.min(this.maxCapacity, Math.floor(totalDUS * 0.7));
+            console.log(`🔄 测试分两趟范围: ${minFirstCapacity}-${maxFirstCapacity}件`);
+        }
 
         for (const strategy of strategies) {
             console.log(`📊 测试策略: ${strategy.name}`);
@@ -537,6 +559,23 @@ class RoutesVisualOptimizer {
             }
         }
 
+        if (bestSolution) {
+            if (bestSolution.length === 1) {
+                console.log(`✅ 最优方案: 一趟完成`);
+                console.log(`📊 总距离: ${minTotalDistance.toFixed(2)}km`);
+                console.log(`📦 一趟完成: ${bestSolution[0].length} 个订单, ${totalDUS} 件货物`);
+            } else {
+                console.log(`✅ 最优方案: 分两趟`);
+                console.log(`📊 总距离: ${minTotalDistance.toFixed(2)}km`);
+                
+                // 输出批次信息
+                bestSolution.forEach((batch, index) => {
+                    const capacity = batch.reduce((sum, order) => sum + order.dus_count, 0);
+                    console.log(`📦 批次 ${index + 1}: ${batch.length} 个订单, ${capacity} 件货物`);
+                });
+            }
+        }
+
         return bestSolution || this.defaultSplit(orders);
     }
 
@@ -546,13 +585,42 @@ class RoutesVisualOptimizer {
     async smartEnumerativeOptimization(orders) {
         console.log('🧠 使用智能枚举策略...');
         
-        // 先用地理聚类粗分，再枚举优化边界
-        const clusters = await this.geographicClustering(orders);
+        const totalDUS = orders.reduce((sum, order) => sum + order.dus_count, 0);
+        console.log(`📊 总货物量: ${totalDUS}件, 车辆容量: ${this.maxCapacity}件`);
         
-        // 枚举优化：调整边界订单
-        const optimizedClusters = await this.optimizeClusterBoundaries(clusters);
-        
-        return optimizedClusters;
+        // 🔍 智能判断：如果总货物量 ≤ 车辆容量，优先考虑一趟完成
+        if (totalDUS <= this.maxCapacity) {
+            console.log('🚛 货物可以一趟完成，测试一趟 vs 分两趟方案...');
+            
+            // 测试一趟完成方案
+            const singleTripDistance = await this.testSingleTrip(orders);
+            console.log(`📏 一趟完成距离: ${singleTripDistance.toFixed(2)}km`);
+            
+            // 测试分两趟的最优方案
+            console.log('📏 测试分两趟的最优方案...');
+            const clusters = await this.geographicClustering(orders);
+            const optimizedClusters = await this.optimizeClusterBoundaries(clusters);
+            const twoTripDistance = await this.calculateClustersDistance(optimizedClusters);
+            console.log(`📏 分两趟距离: ${twoTripDistance.toFixed(2)}km`);
+            
+            // 比较并选择更短的方案
+            if (singleTripDistance <= twoTripDistance) {
+                console.log(`✅ 选择一趟完成方案，节省距离: ${(twoTripDistance - singleTripDistance).toFixed(2)}km`);
+                return [orders];
+            } else {
+                console.log(`✅ 选择分两趟方案，节省距离: ${(singleTripDistance - twoTripDistance).toFixed(2)}km`);
+                return optimizedClusters;
+            }
+        } else {
+            console.log('📦 货物量超过车辆容量，必须分两趟');
+            // 先用地理聚类粗分，再枚举优化边界
+            const clusters = await this.geographicClustering(orders);
+            
+            // 枚举优化：调整边界订单
+            const optimizedClusters = await this.optimizeClusterBoundaries(clusters);
+            
+            return optimizedClusters;
+        }
     }
 
     /**
@@ -746,6 +814,21 @@ class RoutesVisualOptimizer {
             total_distance: totalDistance,
             total_duration: totalDuration
         };
+    }
+
+    /**
+     * 测试一趟完成的方案
+     */
+    async testSingleTrip(orders) {
+        console.log('🔍 计算一趟完成的总距离...');
+        
+        // 使用最近邻算法优化路线顺序
+        const optimizedRoute = await this.nearestNeighborTsp(orders);
+        
+        // 计算总距离（包含从总部出发和返回总部）
+        const routeDistance = this.calculateRouteDistanceFromStraightLine(optimizedRoute);
+        
+        return routeDistance.total_distance;
     }
 
     /**
