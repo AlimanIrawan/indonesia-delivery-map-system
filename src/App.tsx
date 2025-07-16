@@ -700,6 +700,97 @@ function App() {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [lastManualUpdate, setLastManualUpdate] = useState(0);
 
+  // 保存路线数据到localStorage
+  const saveRouteData = useCallback((data: OptimizationResult | null) => {
+    try {
+      if (data) {
+        const routeDataWithTimestamp = {
+          ...data,
+          savedAt: Date.now()
+        };
+        localStorage.setItem('routeData', JSON.stringify(routeDataWithTimestamp));
+        console.log('✅ 路线数据已保存到本地存储');
+      } else {
+        localStorage.removeItem('routeData');
+        console.log('🗑️ 路线数据已从本地存储清除');
+      }
+    } catch (error) {
+      console.error('保存路线数据失败:', error);
+    }
+  }, []);
+
+  // 从localStorage恢复路线数据
+  const loadRouteData = useCallback(() => {
+    try {
+      const savedData = localStorage.getItem('routeData');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        
+        // 检查是否需要自动清除（超过24小时或过了当晚12点）
+        const now = new Date();
+        const savedTime = new Date(parsedData.savedAt);
+        const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+        
+        // 如果保存时间是在今天之前，或者现在已经过了保存当天的午夜12点，则清除数据
+        if (savedTime.toDateString() !== now.toDateString() || now >= todayMidnight) {
+          localStorage.removeItem('routeData');
+          console.log('🕛 路线数据已过期，自动清除');
+          return null;
+        }
+        
+        console.log('📥 从本地存储恢复路线数据');
+        return parsedData;
+      }
+    } catch (error) {
+      console.error('恢复路线数据失败:', error);
+      localStorage.removeItem('routeData'); // 清除损坏的数据
+    }
+    return null;
+  }, []);
+
+  // 设置每晚12点自动清除路线数据
+  const setupMidnightClear = useCallback(() => {
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+    
+    // 设置到下一个午夜的定时器
+    const timeoutId = setTimeout(() => {
+      console.log('🕛 午夜12点自动清除路线数据');
+      setRouteData(null);
+      saveRouteData(null);
+      
+      // 设置每24小时重复执行
+      const intervalId = setInterval(() => {
+        console.log('🕛 午夜12点自动清除路线数据');
+        setRouteData(null);
+        saveRouteData(null);
+      }, 24 * 60 * 60 * 1000); // 24小时
+      
+      return () => clearInterval(intervalId);
+    }, msUntilMidnight);
+
+    return () => clearTimeout(timeoutId);
+  }, [saveRouteData]);
+
+  // 页面加载时恢复路线数据
+  useEffect(() => {
+    const restoredRouteData = loadRouteData();
+    if (restoredRouteData) {
+      setRouteData(restoredRouteData);
+    }
+    
+    // 设置午夜自动清除
+    const cleanup = setupMidnightClear();
+    
+    return cleanup;
+  }, [loadRouteData, setupMidnightClear]);
+
+  // 监听路线数据变化，自动保存到localStorage
+  useEffect(() => {
+    saveRouteData(routeData);
+  }, [routeData, saveRouteData]);
+
   // 加载CSV数据
   const loadData = useCallback(async () => {
     try {
@@ -725,7 +816,7 @@ function App() {
   // 计算路线优化
   const handleCalculateRoutes = async () => {
     setIsCalculatingRoutes(true);
-    setRouteData(null);
+    setRouteData(null); // 清除旧的路线数据
 
     try {
       console.log('🚀 开始计算路线优化...');
@@ -763,10 +854,10 @@ function App() {
       }
 
       const result: OptimizationResult = await response.json();
-      setRouteData(result);
+      setRouteData(result); // 这会触发useEffect自动保存
 
       if (result.success) {
-        console.log('✅ 路线优化计算完成');
+        console.log('✅ 路线优化计算完成并已保存');
       } else {
         console.error('❌ 路线优化失败:', result.error);
       }
@@ -786,7 +877,8 @@ function App() {
 
   // 清除路线显示
   const handleClearRoutes = () => {
-    setRouteData(null);
+    console.log('🧹 用户手动清除路线数据');
+    setRouteData(null); // 这会触发useEffect自动清除localStorage
   };
 
   // 手动刷新数据
