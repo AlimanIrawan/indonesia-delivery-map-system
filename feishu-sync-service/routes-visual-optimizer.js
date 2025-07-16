@@ -826,7 +826,7 @@ class RoutesVisualOptimizer {
         const optimizedRoute = await this.nearestNeighborTsp(orders);
         
         // 计算总距离（包含从总部出发和返回总部）
-        const routeDistance = this.calculateRouteDistanceFromStraightLine(optimizedRoute);
+        const routeDistance = await this.calculateRouteDistance(optimizedRoute);
         
         return routeDistance.total_distance;
     }
