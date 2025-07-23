@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 
 // 创建总部自定义图标
 const headquartersIcon = new L.Icon({
-  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+  iconUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
       <defs>
         <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -42,7 +42,7 @@ const headquartersIcon = new L.Icon({
 
 // 红色订单标记图标
 const redMarkerIcon = new L.Icon({
-  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+  iconUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
       <circle cx="12" cy="12" r="10" fill="#dc3545" stroke="white" stroke-width="2"/>
     </svg>
@@ -54,7 +54,7 @@ const redMarkerIcon = new L.Icon({
 
 // 灰色订单标记图标（已出库）
 const grayMarkerIcon = new L.Icon({
-  iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+  iconUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
       <circle cx="12" cy="12" r="10" fill="#6c757d" stroke="white" stroke-width="2"/>
     </svg>
@@ -1235,4 +1235,4 @@ const parseCSV = (csvText: string): MarkerData[] => {
   return markers;
 };
 
-export default App; 
+export default App;
