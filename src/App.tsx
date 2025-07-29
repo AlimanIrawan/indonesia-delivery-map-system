@@ -64,6 +64,32 @@ const grayMarkerIcon = new L.Icon({
   popupAnchor: [0, -12]
 });
 
+// 红色优先级标记图标（带黄色惊叹号）
+const redPriorityMarkerIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+      <circle cx="12" cy="12" r="10" fill="#dc3545" stroke="white" stroke-width="2"/>
+      <text x="12" y="16" text-anchor="middle" fill="#FFD700" font-size="14" font-weight="bold">!</text>
+    </svg>
+  `),
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
+});
+
+// 灰色优先级标记图标（带黄色惊叹号）
+const grayPriorityMarkerIcon = new L.Icon({
+  iconUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+      <circle cx="12" cy="12" r="10" fill="#6c757d" stroke="white" stroke-width="2"/>
+      <text x="12" y="16" text-anchor="middle" fill="#FFD700" font-size="14" font-weight="bold">!</text>
+    </svg>
+  `),
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+  popupAnchor: [0, -12]
+});
+
 interface MarkerData {
   shop_code: string;
   latitude: number;
@@ -76,6 +102,7 @@ interface MarkerData {
   finalPrice: string;
   gudangOut?: string;  // Gudang OUT状态（保留兼容性）
   outletIn?: string;   // 新增：Outlet IN状态（已到店/未到店）
+  prioritas?: string;  // 新增：Prioritas状态（❗️/- 优先级标识）
   fields?: any;
 }
 
@@ -1018,6 +1045,10 @@ function App() {
                   <span className="stat-value">{markers.filter(m => m.outletIn === '✅').length}</span>
                 </div>
                 <div className="stat-item">
+                  <span className="stat-label">❗️</span>
+                  <span className="stat-value">{markers.filter(m => m.prioritas === '❗️').length}</span>
+                </div>
+                <div className="stat-item">
                   <span className="stat-label">📦</span>
                   <span className="stat-value">{markers.reduce((sum, m) => sum + (parseInt(m.totalDUS) || 0), 0)}</span>
                 </div>
@@ -1181,16 +1212,29 @@ function App() {
               }
 
               // 普通订单标记（未参与路线或已出库）
+              // 根据prioritas和outletIn状态选择图标
+              let markerIcon;
+              if (marker.prioritas === '❗️') {
+                // 优先级订单：带黄色惊叹号
+                markerIcon = isExcluded ? grayPriorityMarkerIcon : redPriorityMarkerIcon;
+              } else {
+                // 普通订单：标准图标
+                markerIcon = isExcluded ? grayMarkerIcon : redMarkerIcon;
+              }
+              
               return (
                 <Marker
                   key={`marker-${index}`}
                   position={[marker.latitude, marker.longitude]}
-                  icon={isExcluded ? grayMarkerIcon : redMarkerIcon}
+                  icon={markerIcon}
                 >
                   <Popup className="order-popup">
                     {isExcluded && (
                       <div className="excluded-label">已到店 ✅</div>
-      )}
+                    )}
+                    {marker.prioritas === '❗️' && (
+                      <div className="priority-label">优先级 ❗️</div>
+                    )}
                     <div>🏪 {marker.outlet_name}</div>
                     <div>✉️ {marker.kantong}</div>
                     <div>📦 {marker.totalDUS} DUS</div>
@@ -1235,7 +1279,8 @@ const parseCSV = (csvText: string): MarkerData[] => {
       totalDUS: values[7]?.replace(/"/g, '') || '',
       finalPrice: values[8]?.replace(/"/g, '') || '',
       gudangOut: values[9]?.replace(/"/g, '') || '',  // Gudang OUT状态（保留兼容性）
-      outletIn: values[10]?.replace(/"/g, '') || ''   // 新增：Outlet IN状态（已到店/未到店）
+      outletIn: values[10]?.replace(/"/g, '') || '',  // 新增：Outlet IN状态（已到店/未到店）
+      prioritas: values[11]?.replace(/"/g, '') || ''   // 第12列：Prioritas状态（❗️/- 优先级标识）
     });
   }
 

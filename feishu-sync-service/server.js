@@ -241,6 +241,9 @@ async function getFeishuData() {
       // 提取Outlet IN状态（新增：用于判断是否已到店）
       const outletIn = getFieldText(fields['Outlet IN']);
       
+      // 提取Prioritas状态（新增：用于标识优先级订单）
+      const prioritas = getFieldText(fields['Prioritas']);
+      
       // 提取最终价格 - 优先使用Final Price IDR字段
       let finalPrice = '';
       if (fields['Final Price IDR']) {
@@ -264,8 +267,9 @@ async function getFeishuData() {
       console.log(`  - 电话: ${noTelepon}`);
       console.log(`  - Kantong: ${kantong}, Order Type: ${orderType}, Total DUS: ${totalDUS}`);
       console.log(`  - 最终价格: ${finalPrice} IDR`);
-      console.log(`  - Gudang OUT状态: ${gudangOut} ${gudangOut === '✅' ? '(已出库)' : '(未出库)'}`);      
-      console.log(`  - Outlet IN状态: ${outletIn} ${outletIn === '✅' ? '(已到店)' : '(未到店)'}`);
+      console.log(`  - Gudang OUT状态: ${gudangOut} ${gudangOut === '✅' ? '(已出库)' : '(未出库)'}`);
+      console.log(`  - Outlet IN状态: ${outletIn} ${outletIn === '✅' ? '(已到店)' : '(未到店)'}`); 
+      console.log(`  - Prioritas状态: ${prioritas} ${prioritas === '❗️' ? '(优先级)' : '(普通)'}`);
       
       // 如果经纬度无效，跳过此记录
       if (latitude === 0 || longitude === 0) {
@@ -285,10 +289,12 @@ async function getFeishuData() {
         finalPrice: finalPrice || '',
         gudangOut: gudangOut || '', // 直接添加gudangOut字段
         outletIn: outletIn || '', // 新增outletIn字段
+        prioritas: prioritas || '', // 新增prioritas字段
         // 保留原始字段数据，特别是Gudang OUT和Outlet IN状态，用于路线优化过滤
         fields: {
           'Gudang OUT': gudangOut,
           'Outlet IN': outletIn,
+          'Prioritas': prioritas,
           'Outlet Code': outletCode,
           'Nama Pemilik': namaPemilik,
           'Total DUS': totalDUS,
@@ -320,12 +326,13 @@ async function getFeishuData() {
 
 // 生成CSV内容
 function generateCSV(data) {
-  const headers = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn';
+  const headers = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas';
   const rows = data.map(item => {
-    // 直接从item对象获取gudangOut和outletIn，而不是从fields对象
+    // 直接从item对象获取gudangOut、outletIn和prioritas，而不是从fields对象
     const gudangOutStatus = item.gudangOut || '';
     const outletInStatus = item.outletIn || '';
-    return `${item.shop_code},${item.latitude},${item.longitude},"${item.outlet_name}","${item.phoneNumber}","${item.kantong}","${item.orderType}","${item.totalDUS}","${item.finalPrice}","${gudangOutStatus}","${outletInStatus}"`;
+    const prioritasStatus = item.prioritas || '';
+    return `${item.shop_code},${item.latitude},${item.longitude},"${item.outlet_name}","${item.phoneNumber}","${item.kantong}","${item.orderType}","${item.totalDUS}","${item.finalPrice}","${gudangOutStatus}","${outletInStatus}","${prioritasStatus}"`;
   });
   return [headers, ...rows].join('\n');
 }
