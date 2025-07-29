@@ -1,6 +1,6 @@
 {
-  "short_name": "印尼地图",
-  "name": "印尼地图标注系统",
+  "short_name": "送货地图",
+  "name": "送货地图系统",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,6 +10,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
-} 
+  "theme_color": "#FFD700",
+  "background_color": "#FFD700"
+}
