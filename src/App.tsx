@@ -52,7 +52,7 @@ const redMarkerIcon = new L.Icon({
   popupAnchor: [0, -12]
 });
 
-// 灰色订单标记图标（已出库）
+// 灰色订单标记图标（已到店）
 const grayMarkerIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
@@ -74,7 +74,8 @@ interface MarkerData {
   orderType: string;
   totalDUS: string;
   finalPrice: string;
-  gudangOut?: string;  // 新增：Gudang OUT状态
+  gudangOut?: string;  // Gudang OUT状态（保留兼容性）
+  outletIn?: string;   // 新增：Outlet IN状态（已到店/未到店）
   fields?: any;
 }
 
@@ -754,6 +755,8 @@ function App() {
     const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
     const msUntilMidnight = tomorrow.getTime() - now.getTime();
     
+    let intervalId: number | null = null;
+    
     // 设置到下一个午夜的定时器
     const timeoutId = setTimeout(() => {
       console.log('🕛 午夜12点自动清除路线数据');
@@ -761,16 +764,19 @@ function App() {
       saveRouteData(null);
       
       // 设置每24小时重复执行
-      const intervalId = setInterval(() => {
+      intervalId = window.setInterval(() => {
         console.log('🕛 午夜12点自动清除路线数据');
         setRouteData(null);
         saveRouteData(null);
       }, 24 * 60 * 60 * 1000); // 24小时
-      
-      return () => clearInterval(intervalId);
     }, msUntilMidnight);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+    };
   }, [saveRouteData]);
 
   // 页面加载时恢复路线数据
@@ -1005,11 +1011,11 @@ function App() {
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">🔴</span>
-                  <span className="stat-value">{markers.filter(m => m.gudangOut !== '✅').length}</span>
+                  <span className="stat-value">{markers.filter(m => m.outletIn !== '✅').length}</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">✅</span>
-                  <span className="stat-value">{markers.filter(m => m.gudangOut === '✅').length}</span>
+                  <span className="stat-value">{markers.filter(m => m.outletIn === '✅').length}</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">📦</span>
@@ -1077,13 +1083,13 @@ function App() {
           {/* 路线叠加层 */}
           <RouteOverlay routeData={routeData} />
           
-          {/* 订单标记 - 根据Gudang OUT状态分类显示 */}
+          {/* 订单标记 - 根据Outlet IN状态分类显示 */}
           {(() => {
             // 使用一个Set来跟踪已经匹配的路线位置，避免重复
             const usedPositions = new Set<string>();
             
             return markers.map((marker, index) => {
-              const isExcluded = marker.gudangOut === '✅';
+              const isExcluded = marker.outletIn === '✅';
               
               // 查找该订单在路线中的位置和批次
               let routeInfo: { batchNumber: number; orderIndex: number; batchColor: string } | null = null;
@@ -1183,7 +1189,7 @@ function App() {
                 >
                   <Popup className="order-popup">
                     {isExcluded && (
-                      <div className="excluded-label">已出库 ✅</div>
+                      <div className="excluded-label">已到店 ✅</div>
       )}
                     <div>🏪 {marker.outlet_name}</div>
                     <div>✉️ {marker.kantong}</div>
@@ -1228,7 +1234,8 @@ const parseCSV = (csvText: string): MarkerData[] => {
       orderType: values[6]?.replace(/"/g, '') || '',
       totalDUS: values[7]?.replace(/"/g, '') || '',
       finalPrice: values[8]?.replace(/"/g, '') || '',
-      gudangOut: values[9]?.replace(/"/g, '') || ''  // 新增：Gudang OUT状态
+      gudangOut: values[9]?.replace(/"/g, '') || '',  // Gudang OUT状态（保留兼容性）
+      outletIn: values[10]?.replace(/"/g, '') || ''   // 新增：Outlet IN状态（已到店/未到店）
     });
   }
 

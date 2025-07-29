@@ -238,6 +238,9 @@ async function getFeishuData() {
       // 提取Gudang OUT状态（重要：用于路线优化时过滤已出库订单）
       const gudangOut = getFieldText(fields['Gudang OUT']);
       
+      // 提取Outlet IN状态（新增：用于判断是否已到店）
+      const outletIn = getFieldText(fields['Outlet IN']);
+      
       // 提取最终价格 - 优先使用Final Price IDR字段
       let finalPrice = '';
       if (fields['Final Price IDR']) {
@@ -261,7 +264,8 @@ async function getFeishuData() {
       console.log(`  - 电话: ${noTelepon}`);
       console.log(`  - Kantong: ${kantong}, Order Type: ${orderType}, Total DUS: ${totalDUS}`);
       console.log(`  - 最终价格: ${finalPrice} IDR`);
-      console.log(`  - Gudang OUT状态: ${gudangOut} ${gudangOut === '✅' ? '(已出库)' : '(未出库)'}`);
+      console.log(`  - Gudang OUT状态: ${gudangOut} ${gudangOut === '✅' ? '(已出库)' : '(未出库)'}`);      
+      console.log(`  - Outlet IN状态: ${outletIn} ${outletIn === '✅' ? '(已到店)' : '(未到店)'}`);
       
       // 如果经纬度无效，跳过此记录
       if (latitude === 0 || longitude === 0) {
@@ -280,9 +284,11 @@ async function getFeishuData() {
         totalDUS: totalDUS || '',
         finalPrice: finalPrice || '',
         gudangOut: gudangOut || '', // 直接添加gudangOut字段
-        // 保留原始字段数据，特别是Gudang OUT状态，用于路线优化过滤
+        outletIn: outletIn || '', // 新增outletIn字段
+        // 保留原始字段数据，特别是Gudang OUT和Outlet IN状态，用于路线优化过滤
         fields: {
           'Gudang OUT': gudangOut,
+          'Outlet IN': outletIn,
           'Outlet Code': outletCode,
           'Nama Pemilik': namaPemilik,
           'Total DUS': totalDUS,
@@ -314,11 +320,12 @@ async function getFeishuData() {
 
 // 生成CSV内容
 function generateCSV(data) {
-  const headers = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut';
+  const headers = 'shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn';
   const rows = data.map(item => {
-    // 直接从item对象获取gudangOut，而不是从fields对象
+    // 直接从item对象获取gudangOut和outletIn，而不是从fields对象
     const gudangOutStatus = item.gudangOut || '';
-    return `${item.shop_code},${item.latitude},${item.longitude},"${item.outlet_name}","${item.phoneNumber}","${item.kantong}","${item.orderType}","${item.totalDUS}","${item.finalPrice}","${gudangOutStatus}"`;
+    const outletInStatus = item.outletIn || '';
+    return `${item.shop_code},${item.latitude},${item.longitude},"${item.outlet_name}","${item.phoneNumber}","${item.kantong}","${item.orderType}","${item.totalDUS}","${item.finalPrice}","${gudangOutStatus}","${outletInStatus}"`;
   });
   return [headers, ...rows].join('\n');
 }
@@ -697,22 +704,22 @@ app.post('/api/calculate-routes', async (req, res) => {
     // 获取今天的飞书数据
     const allOrders = await getFeishuData();
     
-    // 过滤掉已出库的订单（Gudang OUT = ✅）
+    // 过滤掉已到店的订单（Outlet IN = ✅）
     const activeOrders = allOrders.filter(order => {
-      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
-      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
-      return gudangOut !== '✅';
+      // 优先从order.outletIn获取，如果没有则从fields获取（兼容性）
+      const outletIn = order.outletIn || (order.fields ? order.fields['Outlet IN'] : null);
+      return outletIn !== '✅';
     });
 
     const excludedOrders = allOrders.filter(order => {
-      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
-      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
-      return gudangOut === '✅';
+      // 优先从order.outletIn获取，如果没有则从fields获取（兼容性）
+      const outletIn = order.outletIn || (order.fields ? order.fields['Outlet IN'] : null);
+      return outletIn === '✅';
     });
 
     console.log(`📦 总订单数: ${allOrders.length}`);
     console.log(`🔄 参与路线计算: ${activeOrders.length} 个订单`);
-    console.log(`⚫ 已出库(跳过): ${excludedOrders.length} 个订单`);
+    console.log(`⚫ 已到店(跳过): ${excludedOrders.length} 个订单`);
 
     if (activeOrders.length === 0) {
       return res.json({
@@ -778,15 +785,15 @@ app.get('/api/order-status', async (req, res) => {
     
     // 分类统计
     const activeOrders = allOrders.filter(order => {
-      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
-      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
-      return gudangOut !== '✅';
+      // 优先从order.outletIn获取，如果没有则从fields获取（兼容性）
+      const outletIn = order.outletIn || (order.fields ? order.fields['Outlet IN'] : null);
+      return outletIn !== '✅';
     });
 
     const excludedOrders = allOrders.filter(order => {
-      // 优先从order.gudangOut获取，如果没有则从fields获取（兼容性）
-      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
-      return gudangOut === '✅';
+      // 优先从order.outletIn获取，如果没有则从fields获取（兼容性）
+      const outletIn = order.outletIn || (order.fields ? order.fields['Outlet IN'] : null);
+      return outletIn === '✅';
     });
 
     const activeTotal = activeOrders.reduce((sum, order) => sum + (parseInt(order.totalDUS) || 0), 0);
@@ -910,15 +917,15 @@ app.post('/api/optimize-routes', async (req, res) => {
       });
     }
     
-    // 过滤掉已出库的订单（Gudang OUT = ✅）
+    // 过滤掉已到店的订单（Outlet IN = ✅）
     const activeOrders = feishuData.filter(order => {
-      const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
-      return gudangOut !== '✅';
+      const outletIn = order.outletIn || (order.fields ? order.fields['Outlet IN'] : null);
+      return outletIn !== '✅';
     });
     
     console.log(`📦 总订单数: ${feishuData.length}`);
     console.log(`🔄 参与路线计算: ${activeOrders.length} 个订单`);
-    console.log(`⚫ 已出库(跳过): ${feishuData.length - activeOrders.length} 个订单`);
+    console.log(`⚫ 已到店(跳过): ${feishuData.length - activeOrders.length} 个订单`);
     
     // 转换数据格式
     const orders = activeOrders.map(item => ({
@@ -973,8 +980,8 @@ app.post('/api/optimize-routes', async (req, res) => {
         statistics: result.statistics || {}
       },
       excluded_points: feishuData.filter(order => {
-        const gudangOut = order.gudangOut || (order.fields ? order.fields['Gudang OUT'] : null);
-        return gudangOut === '✅';
+        const outletIn = order.outletIn || (order.fields ? order.fields['Outlet IN'] : null);
+        return outletIn === '✅';
       }),
       calculation_time: new Date().toISOString(),
       error: result.error || null,
@@ -1423,4 +1430,4 @@ app.listen(PORT, () => {
   console.log('/' .repeat(60));
 }); 
 
-// 版本更新: 添加Routes API可视化功能 - v2.3.0 
+// 版本更新: 添加Routes API可视化功能 - v2.3.0
