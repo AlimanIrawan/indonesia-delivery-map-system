@@ -102,7 +102,7 @@ interface MarkerData {
   finalPrice: string;
   gudangOut?: string;  // Gudang OUT状态（保留兼容性）
   outletIn?: string;   // 新增：Outlet IN状态（已到店/未到店）
-  prioritas?: string;  // 新增：Prioritas状态（❗️/- 优先级标识）
+  prioritas?: string;  // 新增：Prioritas状态（❗/- 优先级标识）
   fields?: any;
 }
 
@@ -1046,7 +1046,7 @@ function App() {
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">❗️</span>
-                  <span className="stat-value">{markers.filter(m => m.prioritas === '❗️').length}</span>
+                  <span className="stat-value">{markers.filter(m => m.prioritas === '❗').length}</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">📦</span>
@@ -1214,7 +1214,7 @@ function App() {
               // 普通订单标记（未参与路线或已出库）
               // 根据prioritas和outletIn状态选择图标
               let markerIcon;
-              if (marker.prioritas === '❗️') {
+              if (marker.prioritas === '❗') {
                 // 优先级订单：带黄色惊叹号
                 markerIcon = isExcluded ? grayPriorityMarkerIcon : redPriorityMarkerIcon;
               } else {
