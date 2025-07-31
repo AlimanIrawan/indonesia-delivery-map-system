@@ -1,4 +1,5 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
+250617113650,-6.106984132213823,106.91839512437582,"Ibu Eka Sugiarti ","081317184343","I","First Order","17","1452000","-","-","❗"
 250617145445,-6.11137664249965,106.9149424508214,"Bapak Haerudin","089520006316","A","First Order","17","1452000","-","-","❗"
 250710180725,-6.108181941605717,106.93428788334131,"Bapak Yanto I","081775050686","B","First Order","17","1452000","-","-","❗"
 250531113540,-6.13786795473874,106.91696651279926,"Ibu Annisa Ruseno ","085776143551","X","Repeat Order","3","263500","-","-","❗"
