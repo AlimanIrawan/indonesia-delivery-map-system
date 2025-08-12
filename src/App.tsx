@@ -1238,6 +1238,7 @@ function App() {
                     <div>🏪 {marker.outlet_name}</div>
                     <div>✉️ {marker.kantong}</div>
                     <div>📦 {marker.totalDUS} DUS</div>
+                    <a href={`https://www.google.com/maps?q=${marker.latitude},${marker.longitude}`} target="_blank" rel="noopener noreferrer" style={{ color: 'blue', textDecoration: 'underline' }}>map link</a>
                   </Popup>
                 </Marker>
               );
