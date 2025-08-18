@@ -1,3 +1,4 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
-250607102237,-6.1098335,106.9199005,"Bapak Raub","0881024752094","","Repeat Order","3","279000","-","-","❗"
-250630144104,-6.11934547620563,106.958027780056,"Ibu Rosifah","08978807472","","Repeat Order","4","403000","-","-","❗"
+250607102237,-6.1098335,106.9199005,"Bapak Raub","0881024752094","Z","Repeat Order","3","279000","-","-","❗"
+250507164722,-6.121554352942299,106.91119942814112,"Ibu Novianti","082111927408","C","Repeat Order","4","387500","-","-","❗"
+250630144104,-6.11934547620563,106.958027780056,"Ibu Rosifah","08978807472","H","Repeat Order","4","403000","-","-","❗"
