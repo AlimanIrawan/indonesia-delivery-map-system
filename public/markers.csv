@@ -1,6 +1,6 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
 250714112103,-6.133494663638649,106.92596096545458,"Ibu Indah Ulpah","089519963597","I","First Order","17","1452000","-","-","❗"
-250813150739,-6.175560306391253,106.90741684287786,"Bapak Reiner Jonathan Sakti Djaya","085607060543","E","First Order","17","1502000","-","-","❗"
+250813150739,-6.175560306391253,106.90741684287786,"Bapak Reiner Jonathan Sakti Djaya","085607060543","E","First Order","17","1502000","✅","-","❗"
 250625100142,-6.108899900000001,106.9180967,"Ibu Sumiati","085880205442","O","Repeat Order","4","325500","-","-","❗"
 250611153050,-6.110301187560588,106.9191712886095,"Bapak Heru","081298788593","X","Repeat Order","3","263500","-","-","❗"
 250619090328,-6.110401865702975,106.92187931388617,"Ibu Sri Sumarkini","081236806652","K","Repeat Order","4","491000","-","-","❗"
