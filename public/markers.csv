@@ -1,3 +1,4 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
-250821152103,-6.110202942948206,106.89509122137446,"Bapak Abusairi","085284473339","E","First Order","17","1502000","-","-","❗"
+250821152103,-6.110202942948206,106.89509122137446,"Bapak Abusairi","085284473339","E","First Order","17","1502000","✅","-","❗"
 250822144413,-6.126661299999999,106.8822206,"Ibu Celine","081310093662","K","First Order","6","900000","-","-","❗"
+250514085339,-6.1121197252603405,106.90824329853058,"Bapak Sayuti","081292775507","P","Repeat Order","3","254000","-","-","-"
