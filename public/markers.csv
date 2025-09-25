@@ -1,5 +1,5 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
-250917104028,-6.119854099999999,106.9097362,"Ibu Reyna","085885661024","AG","First Order","2","140000","✅","-","❗"
+250917104028,-6.119854099999999,106.9097362,"Ibu Reyna","085885661024","AG","First Order","2","140000","✅","✅","❗"
 250804140723,-6.1385153281139395,106.92250695079565,"Ibu Nurjanah","089501996503","R","Repeat Order","4","423000","✅","✅","❗"
 250719123320,-6.1569108035160545,106.92040376365185,"Ibu Magfirotun Hasanah","085881771106","C","Repeat Order","4","408000","-","-","❗"
 250715121948,-6.134426061975762,106.9080987945199,"Bapak Lukman Hakim","087776569007","B","Repeat Order","4","347000","✅","✅","❗"
