@@ -1,5 +1,4 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
-250624103020,-6.151549300167575,106.9544755294919,"Ibu Rahmania","081957482487","N","Repeat Order","4","341000","-","-","❗"
 250609093529,-6.112831470229959,106.89552191644907,"Ibu Diah","0895359482647","P","Repeat Order","3","279000","-","-","❗"
 250916172259,-6.126850099999999,106.9048444,"Bapak Hj. Yono","081805633815","S","Repeat Order","13","1331500","-","-","❗"
 250429095223,-6.128126590624063,106.90051417797804,"Bapak Amir","089655028025","H","Repeat Order","6","517500","-","-","❗"
