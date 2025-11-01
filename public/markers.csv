@@ -1,5 +1,4 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
-250513112411,-6.116419850585421,106.90610826015472,"Ibu Yuli Kristiawati ","089626088700","AA","Repeat Order","5","526500","-","-","❗"
 250522121909,-6.109712453408319,106.8959728628397,"Ibu Siti","081385989610","P","Repeat Order","3","328000","-","-","❗"
 250724182407,-6.1284132803575595,106.90951835364103,"Ibu Siti Saniyah","088290684772","G","Repeat Order","16","1434500","-","-","❗"
 250502121134,-6.129184008272832,106.91769976168871,"Bapak Aadi","087882349999","AZ","Repeat Order","4","484000","-","-","❗"
@@ -8,4 +7,5 @@ shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,
 250607102237,-6.1098335,106.9199005,"Bapak Raub","0881024752094","AB","Repeat Order","3","263000","✅","-","❗"
 251021112412,-6.110201,106.932651,"Bapak Samuel","081292700949","AX","Repeat Order","3","394000","-","-","❗"
 251031125428,-6.1236336,106.8972911,"Bapak Usman","089637101757","AW","First Order","1","150000","-","-","❗"
-250917143627,-6.1118998,106.9392889,"Bapak Junaedi Hasan","087789529254","","Repeat Order","5","554500","-","-","-"
+250917143627,-6.1118998,106.9392889,"Bapak Junaedi Hasan","087789529254","N","Repeat Order","5","554500","-","-","-"
+250523152310,-6.133317317743684,106.90019499510527,"Ibu Yuliyanti ","082246523879","","Repeat Order","4","347000","-","-","-"
