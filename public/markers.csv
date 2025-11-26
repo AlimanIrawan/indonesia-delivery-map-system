@@ -1,5 +1,5 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
-251120174701,-6.109082600000001,106.8946815,"Ibu Widia Indah Lestari","085721496853","R","First Order","14","1064500","-","-","❗"
+251120174701,-6.109082600000001,106.8946815,"Ibu Widia Indah Lestari","085721496853","R","First Order","13","987000","-","-","❗"
 250916172259,-6.126850099999999,106.9048444,"Bapak H. Yono","081805633815","BK","Repeat Order","7","677500","-","-","❗"
 251014164306,-6.1219411,106.8690328,"Ibu Emai","085173095641","Z","Repeat Order","3","310000","-","-","❗"
 251022121248,-6.1074541,106.9234755,"Ibu Yeni Susilowati","081218626896","AG","Repeat Order","8","781500","-","-","❗"
