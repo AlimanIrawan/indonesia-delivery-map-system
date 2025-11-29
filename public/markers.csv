@@ -1,6 +1,6 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
+251120174701,-6.109082600000001,106.8946815,"Ibu Widia Indah Lestari","085721496853","R","First Order","13","987000","-","-","❗"
 251106141819,-6.143182299999999,106.9049791,"Ibu Eko","087772007649","V","Repeat Order","6","660000","-","-","❗"
-251121120151,-6.1203741,106.9133914,"Bapak Dani","08121308331","BG","First Order","13","987000","-","-","❗"
 251122181012,-6.1080125,106.8941094,"Bapak Max Rudy Timbong","081315777151","Z","First Order","13","987000","✅","✅","❗"
 251126110316,-6.117306999999999,106.8759365,"Ibu Rina Nurhayati","082124784880","AC","First Order","13","987000","-","-","❗"
 251127104929,-6.1109668,106.9122549,"Bapak Tamrin","082113124837","AO","First Order","13","987000","-","-","❗"
@@ -29,3 +29,4 @@ shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,
 251118161924,-6.0976753,106.9305726,"Ibu Andi Nuraini ","087754690210","BY","Repeat Order","3","279000","-","-","-"
 251122075634,-6.1339405,106.9026306,"Ibu Aviva","08388629316","BA","Repeat Order","4","341000","-","-","-"
 250721193440,-6.118362863723961,106.90814009158969,"Bapak Haris","0895703093373","AM","Repeat Order","19","1740000","-","-","-"
+250804103156,-6.1122449978975455,106.91181765409186,"Ibu Yolan","081313146266","AT","Repeat Order","3","248000","-","-","-"
