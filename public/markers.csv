@@ -1,5 +1,4 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
-250623140602,-6.119541828582323,106.95108823478222,"Ibu Mahdiyah","08978573258","BP","Repeat Order","3","345500","-","-","❗"
 251202110234,-6.1162535,106.8974588,"Ibu Arty Supraptianingsih","085280628223","BT","First Order","13","987000","-","-","❗"
 251203101012,-6.1304262,106.9074544,"Ibu Almini","085211822997","AM","First Order","13","987000","-","-","❗"
 251105131858,-6.1160375,106.9222969,"Ibu Musriatun","081284244759","AH","Repeat Order","4","418500","-","-","❗"
@@ -11,3 +10,4 @@ shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,
 251120100637,-6.113699200000001,106.9199375,"Ibu Karmilah","089686520500","BI","Repeat Order","3","328500","-","-","❗"
 250815084855,-6.100344959228284,106.93056363612413,"Pak Afki","081287417454","BE","Repeat Order","1","150000","-","-","❗"
 251126070036,-6.1338607,106.8997974,"Ibu Suciati","085940476414","AS","Repeat Order","4","379500","-","-","-"
+251024151737,-6.1186167,106.8851401,"Bapak Asep Mulyana","081400826610","Y","Repeat Order","3","329000","-","-","-"
