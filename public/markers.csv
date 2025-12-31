@@ -14,3 +14,4 @@ shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,
 250623112411,-6.147387797596372,106.95811059325933,"Ibu Nunung Nurhayati","089673694600","BR","Repeat Order","3","360000","-","-","❗"
 250926185857,-6.125095200000001,106.9136476,"Ibu Daryati","089601948947","BH","Repeat Order","3","344500","-","-","❗"
 251203165505,-6.1387125,106.9038906,"Bapak Susiyanto","085659000053","CB","Repeat Order","6","569000","-","-","❗"
+,NaN,NaN,"","","","","","","-","-","-"
