@@ -1,7 +1,6 @@
 shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,finalPrice,gudangOut,outletIn,prioritas
 260409155952,-6.1379675,106.8766988,"Ibu Sania","087878701432","AP","First Order","13","987000","-","-","❗"
 250704173117,-6.120123217879017,106.90245676785707,"Ibu Sri Suharyati","082211368884","BQ","Repeat Order","3","319500","-","-","❗"
-260123120239,-6.1266741,106.9073062,"Bapak Denny Candra","081400783695","S","Repeat Order","8","801000","-","-","❗"
 250804140723,-6.1385153281139395,106.92250695079565,"Ibu Nurjanah","089501996503","GC","Repeat Order","6","557500","-","-","❗"
 251113113619,-6.1245875,106.8817031,"Bapak Amir Khatib","087713116859","GX","Repeat Order","8","734000","✅","✅","❗"
 260206190856,-6.1144875,106.8886406,"Ibu Alwida Rosiam","085717960604","HD","Repeat Order","3","280500","✅","✅","❗"
@@ -28,3 +27,5 @@ shop_code,latitude,longitude,outlet_name,phoneNumber,kantong,orderType,totalDUS,
 251223111628,-6.1060228,106.9254623,"Ibu Sutra","081234183318","AC","Repeat Order","4","422000","-","-","-"
 260305153123,-6.1323256,106.9004746,"Bapak H. Sutirto","082210340905","F","Repeat Order","4","372000","-","-","-"
 260228154833,-6.133207699999999,106.897172,"Ibu Satri Yani","081315887167","BJ","Repeat Order","5","516500","-","-","-"
+251028140244,-6.102298399999999,106.9203664,"Ibu Rukanah","0895703087872","","Repeat Order","3","330500","-","-","-"
+260123120239,-6.1266741,106.9073062,"Bapak Denny Candra","081400783695","S","Repeat Order","8","801000","-","-","-"
